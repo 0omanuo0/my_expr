@@ -248,6 +248,342 @@ namespace f_parser_builtins
 		}
 		return json_t();
 	}
+	
+	inline token_data_t len_f(const token_data_t *args){
+		if(args[0].index() == 1){
+			return static_cast<num_t>(std::get<string_t>(args[0]).size());
+		}
+		else if(args[0].index() == 2){
+			return static_cast<num_t>(std::get<json_t>(args[0]).size());
+		}
+		return (num_t)0;
+	}
+
+	inline token_data_t sum_f(const token_data_t *args){
+		if(args[0].index() == 2){
+			auto j = std::get<json_t>(args[0]);
+			if(j.is_array()){
+				num_t sum = 0;
+				for(auto &v : j){
+					if(v.is_number()){
+						sum += v.get<num_t>();
+					}
+					else if(v.is_string()){
+						sum += stringToNumber(v.get<string_t>());
+					}
+				}
+				return sum;
+			}
+		}
+		return (num_t)0;
+	}
+	
+	inline token_data_t capitalize_f(const token_data_t *args){
+		if(args[0].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			if(s.size() > 0){
+				s[0] = std::toupper(s[0]);
+			}
+			return s;
+		}
+		return string_t("");
+	}
+
+	inline token_data_t lower_f(const token_data_t *args){
+		if(args[0].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+			return s;
+		}
+		return string_t("");
+	}
+
+	inline token_data_t upper_f(const token_data_t *args){
+		if(args[0].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			std::transform(s.begin(), s.end(), s.begin(), ::toupper);
+			return s;
+		}
+		return string_t("");
+	}
+
+	inline token_data_t split_f(const token_data_t *args){
+		if(args[0].index() == 1 && args[1].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			auto delim = std::get<string_t>(args[1]);
+			std::vector<string_t> result;
+			size_t pos = 0;
+			std::string token;
+			while ((pos = s.find(delim)) != std::string::npos) {
+				token = s.substr(0, pos);
+				result.push_back(token);
+				s.erase(0, pos + delim.length());
+			}
+			result.push_back(s);
+			return result;
+		}
+		return json_t();
+	}
+
+	inline token_data_t join_f(const token_data_t *args){
+		if(args[0].index() == 2 && args[1].index() == 1){
+			auto j = std::get<json_t>(args[0]);
+			auto delim = std::get<string_t>(args[1]);
+			string_t result = "";
+			for(auto &v : j){
+				result += v.get<string_t>() + delim;
+			}
+			if(result.size() > 0){
+				result.erase(result.size() - delim.size(), delim.size());
+			}
+			return result;
+		}
+		return string_t("");
+	}
+
+	inline token_data_t replace_f(const token_data_t *args){
+		if(args[0].index() == 1 && args[1].index() == 1 && args[2].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			auto old = std::get<string_t>(args[1]);
+			auto new_ = std::get<string_t>(args[2]);
+			size_t start_pos = 0;
+			while((start_pos = s.find(old, start_pos)) != std::string::npos) {
+				s.replace(start_pos, old.length(), new_);
+				start_pos += new_.length();
+			}
+			return s;
+		}
+		return string_t("");
+	}
+
+	inline token_data_t find_f(const token_data_t *args){
+		if(args[0].index() == 1 && args[1].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			auto sub = std::get<string_t>(args[1]);
+			return static_cast<num_t>(s.find(sub));
+		}
+		else if(args[0].index() == 2 && args[1].index() == 1){
+			auto j = std::get<json_t>(args[0]);
+			auto sub = std::get<string_t>(args[1]);
+			for(size_t i = 0; i < j.size(); i++){
+				if(j[i].is_string() && j[i].get<string_t>().find(sub) != std::string::npos){
+					return static_cast<num_t>(i);
+				}
+			}
+		}
+		return (num_t)-1;
+	}
+
+	inline token_data_t count_f(const token_data_t *args){
+		if(args[0].index() == 1 && args[1].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			auto sub = std::get<string_t>(args[1]);
+			size_t count = 0;
+			size_t pos = 0;
+			while ((pos = s.find(sub, pos)) != std::string::npos) {
+				++count;
+				pos += sub.length();
+			}
+			return static_cast<num_t>(count);
+		}
+		else if(args[0].index() == 2 && args[1].index() == 1){
+			auto j = std::get<json_t>(args[0]);
+			auto sub = std::get<string_t>(args[1]);
+			size_t count = 0;
+			for(size_t i = 0; i < j.size(); i++){
+				if(j[i].is_string() && j[i].get<string_t>().find(sub) != std::string::npos){
+					++count;
+				}
+			}
+			return static_cast<num_t>(count);
+		}
+		return (num_t)0;
+	}
+
+	inline token_data_t startswith_f(const token_data_t *args){
+		if(args[0].index() == 1 && args[1].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			auto sub = std::get<string_t>(args[1]);
+			return static_cast<num_t>(s.find(sub) == 0);
+		}
+		else if(args[0].index() == 2 && args[1].index() == 1){
+			auto j = std::get<json_t>(args[0]);
+			auto sub = std::get<string_t>(args[1]);
+			for(size_t i = 0; i < j.size(); i++){
+				if(j[i].is_string() && j[i].get<string_t>().find(sub) == 0){
+					return static_cast<num_t>(1);
+				}
+			}
+		}
+		return (num_t)0;
+	}
+
+	inline token_data_t endswith_f(const token_data_t *args){
+		if(args[0].index() == 1 && args[1].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			auto sub = std::get<string_t>(args[1]);
+			return static_cast<num_t>(s.rfind(sub) == s.size() - sub.size());
+		}
+		else if(args[0].index() == 2 && args[1].index() == 1){
+			auto j = std::get<json_t>(args[0]);
+			auto sub = std::get<string_t>(args[1]);
+			for(size_t i = 0; i < j.size(); i++){
+				if(j[i].is_string() && j[i].get<string_t>().rfind(sub) == j[i].get<string_t>().size() - sub.size()){
+					return static_cast<num_t>(1);
+				}
+			}
+		}
+		return (num_t)0;
+	}
+
+	inline token_data_t isdigit_f(const token_data_t *args){
+		if(args[0].index() == 0){
+			return static_cast<num_t>(1);
+		}
+		if(args[0].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			return static_cast<num_t>(std::all_of(s.begin(), s.end(), ::isdigit));
+		}
+		else if(args[0].index() == 2){
+			auto j = std::get<json_t>(args[0]);
+			for(size_t i = 0; i < j.size(); i++){
+				if(j[i].is_string() && !std::all_of(j[i].get<string_t>().begin(), j[i].get<string_t>().end(), ::isdigit)){
+					return static_cast<num_t>(0);
+				}
+			}
+			return static_cast<num_t>(1);
+		}
+		return (num_t)0;
+	}
+
+	inline token_data_t isalpha_f(const token_data_t *args){
+		if(args[0].index() == 0){
+			return static_cast<num_t>(0);
+		}
+		if(args[0].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			return static_cast<num_t>(std::all_of(s.begin(), s.end(), ::isalpha));
+		}
+		else if(args[0].index() == 2){
+			auto j = std::get<json_t>(args[0]);
+			for(size_t i = 0; i < j.size(); i++){
+				if(j[i].is_string() && !std::all_of(j[i].get<string_t>().begin(), j[i].get<string_t>().end(), ::isalpha)){
+					return static_cast<num_t>(0);
+				}
+			}
+			return static_cast<num_t>(1);
+		}
+		return (num_t)0;
+	}
+
+	inline token_data_t isalnum_f(const token_data_t *args){
+		if(args[0].index() == 0){
+			return static_cast<num_t>(0);
+		}
+		if(args[0].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			return static_cast<num_t>(std::all_of(s.begin(), s.end(), ::isalnum));
+		}
+		else if(args[0].index() == 2){
+			auto j = std::get<json_t>(args[0]);
+			for(size_t i = 0; i < j.size(); i++){
+				if(j[i].is_string() && !std::all_of(j[i].get<string_t>().begin(), j[i].get<string_t>().end(), ::isalnum)){
+					return static_cast<num_t>(0);
+				}
+			}
+			return static_cast<num_t>(1);
+		}
+		return (num_t)0;
+	}
+
+	inline token_data_t isnan_f(const token_data_t *args){
+		if(args[0].index() == 0){
+			return static_cast<num_t>(std::isnan(std::get<num_t>(args[0])));
+		}
+		else if(args[0].index() == 1){
+			return static_cast<num_t>(std::isnan(stringToNumber(std::get<string_t>(args[0]))));
+		}
+		else if(args[0].index() == 2){
+			auto j = std::get<json_t>(args[0]);
+			if(json_is_number(j)){
+				return static_cast<num_t>(std::isnan(j.get<num_t>()));
+			}
+			return static_cast<num_t>(1);
+		}
+		return (num_t)0;
+	}
+
+	inline token_data_t isinf_f(const token_data_t *args){
+		if(args[0].index() == 0){
+			return static_cast<num_t>(std::isinf(std::get<num_t>(args[0])));
+		}
+		else if(args[0].index() == 1){
+			return static_cast<num_t>(std::isinf(stringToNumber(std::get<string_t>(args[0]))));
+		}
+		else if(args[0].index() == 2){
+			auto j = std::get<json_t>(args[0]);
+			if(json_is_number(j)){
+				return static_cast<num_t>(std::isinf(j.get<num_t>()));
+			}
+			return static_cast<num_t>(1);
+		}
+		return (num_t)0;
+	}
+	
+	inline token_data_t reverse_f(const token_data_t *args){
+		if(args[0].index() == 1){
+			auto s = std::get<string_t>(args[0]);
+			std::reverse(s.begin(), s.end());
+			return s;
+		}
+		else if(args[0].index() == 2){
+			auto j = std::get<json_t>(args[0]);
+			if(j.is_array()){
+				std::reverse(j.begin(), j.end());
+				return j;
+			}
+		}
+		return json_t();
+	}
+
+	inline token_data_t sort_f(const token_data_t *args){
+		if(args[0].index() == 2){
+			auto j = std::get<json_t>(args[0]);
+			if(j.is_array()){
+				std::sort(j.begin(), j.end());
+				return j;
+			}
+		}
+		return json_t();
+	}
+
+	inline token_data_t keys_f(const token_data_t *args){
+		if(args[0].index() == 2){
+			auto j = std::get<json_t>(args[0]);
+			if(j.is_object()){
+				std::vector<string_t> keys;
+				for(auto it = j.begin(); it != j.end(); ++it){
+					keys.push_back(it.key());
+				}
+				return keys;
+			}
+		}
+		return json_t();
+	}
+
+	inline token_data_t values_f(const token_data_t *args){
+		if(args[0].index() == 2){
+			auto j = std::get<json_t>(args[0]);
+			if(j.is_object()){
+				std::vector<json_t> values;
+				for(auto it = j.begin(); it != j.end(); ++it){
+					values.push_back(it.value());
+				}
+				return values;
+			}
+		}
+		return json_t();
+	}
 };
 
 namespace operators_builtins
@@ -541,15 +877,15 @@ namespace operators_builtins
 
 		if (typeA == op_data_types::NUMBER)
 		{
-			return std::get<num_t>(a) == 0 ? 1 : 0;
+			return static_cast<num_t>(std::get<num_t>(a) == 0 ? 1 : 0);
 		}
 		else if (typeA == op_data_types::STRING)
 		{
-			return std::get<string_t>(a) == "" ? 1 : 0;
+			return static_cast<num_t>(std::get<string_t>(a) == "" ? 1 : 0);
 		}
 		else if (typeA == op_data_types::json_t)
 		{
-			return std::get<json_t>(a).empty() ? 1 : 0;
+			return static_cast<num_t>(std::get<json_t>(a).empty() ? 1 : 0);
 		}
 		else
 		{
@@ -680,6 +1016,8 @@ class expr
 	// built-in functions, these functions are the ones that can be used in the expression
 
 	const std::unordered_map<string_t, m_function_info> m_functions_builtin = {
+		{"pi", {[](const num_t *args) { return 3.14159265358979323846; }, 0}},
+		{"e", {[](const num_t *args) { return 2.71828182845904523536; }, 0}},
 		{"cos", {m_parser_builtins::cos_f, 1}},
 		{"sin", {m_parser_builtins::sin_f, 1}},
 		{"pow", {m_parser_builtins::pow_f, 2}},
@@ -713,7 +1051,29 @@ class expr
 	const std::unordered_map<string_t, f_function_info> f_functions_builtin = {
 		{"toNum", {f_parser_builtins::to_num, 1}},
 		{"toStr", {f_parser_builtins::to_str, 1}},
-		{"toJon", {f_parser_builtins::to_json, 1}}};
+		{"toJon", {f_parser_builtins::to_json, 1}},
+		{"len", {f_parser_builtins::len_f, 1}},
+		{"sum", {f_parser_builtins::sum_f, 1}}, ///// keys y values
+		{"capitalize", {f_parser_builtins::capitalize_f, 1}},
+		{"lower", {f_parser_builtins::lower_f, 1}},
+		{"upper", {f_parser_builtins::upper_f, 1}},
+		{"split", {f_parser_builtins::split_f, 2}},
+		{"join", {f_parser_builtins::join_f, 2}},
+		{"replace", {f_parser_builtins::replace_f, 3}},
+		{"find", {f_parser_builtins::find_f, 2}},
+		{"count", {f_parser_builtins::count_f, 2}},
+		{"startswith", {f_parser_builtins::startswith_f, 2}},
+		{"endswith", {f_parser_builtins::endswith_f, 2}},
+		{"isalnum", {f_parser_builtins::isalnum_f, 1}},
+		{"isalpha", {f_parser_builtins::isalpha_f, 1}},
+		{"isdigit", {f_parser_builtins::isdigit_f, 1}},
+		{"isnan", {f_parser_builtins::isnan_f, 1}},
+		{"isinf", {f_parser_builtins::isinf_f, 1}},
+		{"reverse", {f_parser_builtins::reverse_f, 1}},
+		{"sort", {f_parser_builtins::sort_f, 1}},
+		{"keys", {f_parser_builtins::keys_f, 1}},
+		{"values", {f_parser_builtins::values_f, 1}}};
+
 
 #pragma endregion
 
@@ -736,7 +1096,6 @@ private:
 	inline token_data_t evaluate_postfix(const token_stream_t &postfix_tokens) const;
 	token_stream_t token_resolver(const token_stream_t &tokens);
 
-
 	// Map of operators and their information
 	static const std::unordered_map<string_t, operator_info_t> operator_info_map_;
 	static const std::unordered_set<string_t> operators_;
@@ -746,7 +1105,7 @@ public:
 	explicit expr(const string_t &exp) : expression_(exp) {};
 
 	void print_tokens(const token_stream_t &tokens) const;
-	token_stream_t get_tokens() const{ return output_compiled_; }
+	token_stream_t get_tokens() const { return output_compiled_; }
 
 	void compile();
 	void set_unknown_function_resolver(function_resolver_t resolver, bool keep)
