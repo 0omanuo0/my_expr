@@ -17,7 +17,6 @@
 
 // create token struct
 
-
 namespace m_parser_builtins
 {
 
@@ -260,10 +259,11 @@ namespace operators_builtins
 		STRING = 1,
 		json_t = 2
 	};
+
 	inline token_data_t add_f(const token_data_t &a, const token_data_t &b)
 	{
-		auto typeA = (op_data_types)a.index();
-		auto typeB = (op_data_types)b.index();
+		auto typeA = static_cast<op_data_types>(a.index());
+		auto typeB = static_cast<op_data_types>(b.index());
 
 		// case 1: number + number => direct sum
 		// case 2: string + string => concatenate
@@ -272,75 +272,99 @@ namespace operators_builtins
 		// case 5: number + json_t => if json_t is a number, sum, else if is an array, push_back, if is string concatenate else if is an object, error
 		// case 7: string + json_t => if json_t is a number, concatenate, else if is an array, push_back, if is string concatenate else if is an object, error
 
+		// Helper function to convert numbers to strings, handling integers cleanly
+		auto num_to_string = [](num_t num)
+		{
+			return (std::floor(num) == num) ? std::to_string(static_cast<int64_t>(num)) : std::to_string(num);
+		};
+
 		if (typeA == op_data_types::NUMBER && typeB == op_data_types::NUMBER)
 		{
 			return std::get<num_t>(a) + std::get<num_t>(b);
 		}
-		else if (typeA == op_data_types::STRING && typeB == op_data_types::STRING)
+
+		if (typeA == op_data_types::STRING && typeB == op_data_types::STRING)
 		{
 			return std::get<string_t>(a) + std::get<string_t>(b);
 		}
-		else if (typeA == op_data_types::json_t && typeB == op_data_types::json_t)
+
+		if (typeA == op_data_types::json_t && typeB == op_data_types::json_t)
 		{
 			auto jsonA = std::get<json_t>(a);
 			auto jsonB = std::get<json_t>(b);
 			jsonA.merge_patch(jsonB);
 			return jsonA;
 		}
-		else if (typeA == op_data_types::NUMBER && typeB == op_data_types::STRING)
+
+		if ((typeA == op_data_types::NUMBER && typeB == op_data_types::STRING) ||
+			(typeA == op_data_types::STRING && typeB == op_data_types::NUMBER))
 		{
-			return std::to_string(std::get<num_t>(a)) + std::get<string_t>(b);
+			return (typeA == op_data_types::NUMBER)
+					   ? num_to_string(std::get<num_t>(a)) + std::get<string_t>(b)
+					   : std::get<string_t>(a) + num_to_string(std::get<num_t>(b));
 		}
-		else if (typeA == op_data_types::NUMBER && typeB == op_data_types::json_t)
+
+		if (typeA == op_data_types::NUMBER && typeB == op_data_types::json_t)
 		{
 			auto jsonB = std::get<json_t>(b);
 			if (jsonB.is_number())
-			{
 				return std::get<num_t>(a) + jsonB.get<num_t>();
-			}
-			else if (jsonB.is_array())
+			if (jsonB.is_array())
 			{
 				jsonB.push_back(std::get<num_t>(a));
 				return jsonB;
 			}
-			else if (jsonB.is_string())
-			{
-				return std::to_string(std::get<num_t>(a)) + jsonB.get<string_t>();
-			}
-			else
-			{
-				return std::numeric_limits<num_t>::quiet_NaN();
-			}
+			if (jsonB.is_string())
+				return num_to_string(std::get<num_t>(a)) + jsonB.get<string_t>();
+			return std::numeric_limits<num_t>::quiet_NaN();
 		}
-		else if (typeA == op_data_types::STRING && typeB == op_data_types::NUMBER)
-		{
-			return std::get<string_t>(a) + std::to_string(std::get<num_t>(b));
-		}
-		else if (typeA == op_data_types::STRING && typeB == op_data_types::json_t)
+
+		if (typeA == op_data_types::STRING && typeB == op_data_types::json_t)
 		{
 			auto jsonB = std::get<json_t>(b);
 			if (jsonB.is_number())
-			{
-				return std::get<string_t>(a) + std::to_string(jsonB.get<num_t>());
-			}
-			else if (jsonB.is_array())
+				return std::get<string_t>(a) + num_to_string(jsonB.get<num_t>());
+			if (jsonB.is_array())
 			{
 				jsonB.push_back(std::get<string_t>(a));
 				return jsonB;
 			}
-			else if (jsonB.is_string())
-			{
+			if (jsonB.is_string())
 				return std::get<string_t>(a) + jsonB.get<string_t>();
-			}
-			else
-			{
-				return std::numeric_limits<num_t>::quiet_NaN();
-			}
-		}
-		else
-		{
 			return std::numeric_limits<num_t>::quiet_NaN();
 		}
+
+		if (typeA == op_data_types::json_t && typeB == op_data_types::NUMBER)
+		{
+			auto jsonA = std::get<json_t>(a);
+			if (jsonA.is_number())
+				return jsonA.get<num_t>() + std::get<num_t>(b);
+			if (jsonA.is_array())
+			{
+				jsonA.push_back(std::get<num_t>(b));
+				return jsonA;
+			}
+			if (jsonA.is_string())
+				return jsonA.get<string_t>() + num_to_string(std::get<num_t>(b));
+			return std::numeric_limits<num_t>::quiet_NaN();
+		}
+
+		if (typeA == op_data_types::json_t && typeB == op_data_types::STRING)
+		{
+			auto jsonA = std::get<json_t>(a);
+			if (jsonA.is_number())
+				return num_to_string(jsonA.get<num_t>()) + std::get<string_t>(b);
+			if (jsonA.is_array())
+			{
+				jsonA.push_back(std::get<string_t>(b));
+				return jsonA;
+			}
+			if (jsonA.is_string())
+				return jsonA.get<string_t>() + std::get<string_t>(b);
+			return std::numeric_limits<num_t>::quiet_NaN();
+		}
+
+		return std::numeric_limits<num_t>::quiet_NaN();
 	}
 
 	inline token_data_t sub_f(const token_data_t &a, const token_data_t &b)
@@ -469,7 +493,6 @@ namespace operators_builtins
 	inline token_data_t and_f(const token_data_t &a, const token_data_t &b)
 	{
 		auto typeA = (op_data_types)a.index();
-		auto typeB = (op_data_types)b.index();
 
 		// python aproach to non boolean values
 		if (typeA == op_data_types::NUMBER)
@@ -493,7 +516,6 @@ namespace operators_builtins
 	inline token_data_t or_f(const token_data_t &a, const token_data_t &b)
 	{
 		auto typeA = (op_data_types)a.index();
-		auto typeB = (op_data_types)b.index();
 
 		if (typeA == op_data_types::NUMBER)
 		{
@@ -528,6 +550,67 @@ namespace operators_builtins
 		else if (typeA == op_data_types::json_t)
 		{
 			return std::get<json_t>(a).empty() ? 1 : 0;
+		}
+		else
+		{
+			return std::numeric_limits<num_t>::quiet_NaN();
+		}
+	}
+
+	inline token_data_t access_f(const token_data_t &a, const token_data_t &b)
+	{
+		auto typeA = (op_data_types)a.index();
+		auto typeB = (op_data_types)b.index();
+
+		if (typeA == op_data_types::json_t && typeB == op_data_types::STRING)
+		{
+			auto jsonA = std::get<json_t>(a);
+			auto key = std::get<string_t>(b);
+			if (jsonA.contains(key))
+			{
+				return jsonA[key];
+			}
+			else
+			{
+				return json_t();
+			}
+		}
+		else
+		{
+			return std::numeric_limits<num_t>::quiet_NaN();
+		}
+	}
+
+	inline token_data_t index_f(const token_data_t &a, const token_data_t &b)
+	{
+		auto typeA = (op_data_types)a.index();
+		auto typeB = (op_data_types)b.index();
+
+		if (typeA == op_data_types::json_t && typeB == op_data_types::NUMBER)
+		{
+			auto jsonA = std::get<json_t>(a);
+			auto index = static_cast<int>(std::get<num_t>(b));
+			if (jsonA.is_array() && index >= 0 && index < jsonA.size())
+			{
+				return jsonA[index];
+			}
+			else
+			{
+				return json_t();
+			}
+		}
+		else if (typeA == op_data_types::STRING && typeB == op_data_types::NUMBER)
+		{
+			auto strA = std::get<string_t>(a);
+			auto index = static_cast<int>(std::get<num_t>(b));
+			if (index >= 0 && index < strA.size())
+			{
+				return string_t(1, strA[index]);
+			}
+			else
+			{
+				return string_t("");
+			}
 		}
 		else
 		{
@@ -596,15 +679,6 @@ class expr
 #pragma region functions
 	// built-in functions, these functions are the ones that can be used in the expression
 
-	// math functions that can be used in the expression (needs to be validated that are numbers)
-	using m_generic_function = num_t (*)(const num_t *args);
-
-	struct m_function_info
-	{
-		m_generic_function func;
-		int num_args;
-	};
-
 	const std::unordered_map<string_t, m_function_info> m_functions_builtin = {
 		{"cos", {m_parser_builtins::cos_f, 1}},
 		{"sin", {m_parser_builtins::sin_f, 1}},
@@ -636,15 +710,6 @@ class expr
 		{"rem", {m_parser_builtins::rem_f, 2}},
 		{"hypot", {m_parser_builtins::hypot_f, 2}}};
 
-	// functions that can transform any token_data_t to other token_data_t despite of the type
-	using f_generic_function = token_data_t (*)(const token_data_t *args);
-
-	struct f_function_info
-	{
-		f_generic_function func;
-		int num_args;
-	};
-
 	const std::unordered_map<string_t, f_function_info> f_functions_builtin = {
 		{"toNum", {f_parser_builtins::to_num, 1}},
 		{"toStr", {f_parser_builtins::to_str, 1}},
@@ -653,43 +718,6 @@ class expr
 #pragma endregion
 
 private:
-	enum class data_type
-	{
-		NUMBER,
-		STRING,
-		ARRAY,
-		JSON,
-		NULL_TYPE
-	};
-
-	enum class token_types
-	{
-		LITERAL,
-		OPERATOR,
-		GROUPING_OPERATOR,
-		VARIABLE,
-		FUNCTION,
-		ARGUMENT_SEPARATOR
-	};
-
-	struct token_t
-	{
-		token_types type;
-		data_type value_type;
-		token_data_t value;
-
-		token_t(token_types t, data_type vt, token_data_t v) : type(t), value_type(vt), value(v) {}
-	};
-
-	struct operator_info_t
-	{
-		int precedence;
-		bool right_associative;
-	};
-
-	using token_stream_t = std::vector<token_t>;
-	using function_resolver_t = std::function<token_data_t(const std::string_view &symbol)>;
-
 	string_t expression_;
 	token_stream_t tokens_;
 	token_stream_t output_compiled_;
@@ -708,7 +736,6 @@ private:
 	inline token_data_t evaluate_postfix(const token_stream_t &postfix_tokens) const;
 	token_stream_t token_resolver(const token_stream_t &tokens);
 
-	void print_tokens(const token_stream_t &tokens) const;
 
 	// Map of operators and their information
 	static const std::unordered_map<string_t, operator_info_t> operator_info_map_;
@@ -717,6 +744,9 @@ private:
 
 public:
 	explicit expr(const string_t &exp) : expression_(exp) {};
+
+	void print_tokens(const token_stream_t &tokens) const;
+	token_stream_t get_tokens() const{ return output_compiled_; }
 
 	void compile();
 	void set_unknown_function_resolver(function_resolver_t resolver, bool keep)
@@ -756,6 +786,3 @@ public:
 
 	static parser_dtype eval(const string_t &expression);
 };
-
-
-
