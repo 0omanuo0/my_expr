@@ -3,7 +3,7 @@
 #pragma region functions
 
 const std::unordered_set<string_t> expr::operators_ = {
-	"==", "!=", "<=", ">=", "&&", "||", "!", "<", ">", "+", "-", "*", "/", "%", "^"};
+    "==", "!=", "<=", ">=", "&&", "||", "!", "<", ">", "+", "-", "*", "/", "%", "^", ".", "[]"};
 
 const std::unordered_set<string_t> expr::literals_ = {"true", "false", "null"};
 
@@ -11,99 +11,102 @@ const std::unordered_set<string_t> expr::literals_ = {"true", "false", "null"};
 
 void expr::compile()
 {
-	try
-	{
-		auto tokens = this->tokenize();
-		if (tokens.empty())
-			return;
-		// this->printTokens(tokens);
-		auto outputQueue = this->shunting_yard(tokens);
-		// this->printTokens(outputQueue);
+    try
+    {
+        auto tokens = this->tokenize();
+        if (tokens.empty())
+            return;
+        this->print_tokens(tokens);
+        auto outputQueue = this->shunting_yard(tokens);
+        this->print_tokens(outputQueue);
 
-		this->output_compiled_ = outputQueue;
-	}
-	catch (const std::exception &ex)
-	{
-		std::cerr << "Error during compilation: " << ex.what() << std::endl;
-	}
+        this->output_compiled_ = outputQueue;
+    }
+    catch (const std::exception &ex)
+    {
+        std::cerr << "Error during compilation: " << ex.what() << std::endl;
+    }
 }
 
 parser_dtype expr::eval()
 {
-	auto result = this->evaluate_postfix(this->output_compiled_);
-	return {result};
+    auto result = this->evaluate_postfix(this->output_compiled_);
+    return {result};
 }
 
 parser_dtype expr::eval(const string_t &expression)
 {
-	expr e(expression);
-	e.compile();
-	return e.eval();
+    expr e(expression);
+    e.compile();
+    return e.eval();
 }
 
 void expr::print_tokens(const token_stream_t &tokens) const
 {
-	for (const auto &tok : tokens)
-	{
-		string_t tokValue;
+    for (const auto &tok : tokens)
+    {
+        string_t tokValue;
 
-		if (tok.value_type != data_type::NUMBER)
-		{
-			tokValue = std::get<string_t>(tok.value);
-		}
-		else
-		{
-			tokValue = std::to_string(std::get<double>(tok.value));
-		}
+        if (tok.value_type != data_type::NUMBER)
+        {
+            tokValue = std::get<string_t>(tok.value);
+        }
+        else
+        {
+            tokValue = std::to_string(std::get<double>(tok.value));
+        }
 
-		if (tok.type == token_types::LITERAL)
-		{
-			std::cout << "LITERAL: " << tokValue << std::endl;
-		}
-		else if (tok.type == token_types::OPERATOR)
-		{
-			std::cout << "OPERATOR: " << tokValue << std::endl;
-		}
-		else if (tok.type == token_types::GROUPING_OPERATOR)
-		{
-			std::cout << "GROUPING_OPERATOR: " << tokValue << std::endl;
-		}
-		else if (tok.type == token_types::FUNCTION)
-		{
-			std::cout << "FUNCTION: " << tokValue << std::endl;
-		}
-		else if (tok.type == token_types::ARGUMENT_SEPARATOR)
-		{
-			std::cout << "ARGUMENT_SEPARATOR: " << tokValue << std::endl;
-		}
-	}
-	std::cout << std::endl;
+        if (tok.type == token_types::LITERAL)
+        {
+            std::cout << "LITERAL: " << tokValue << std::endl;
+        }
+        else if (tok.type == token_types::OPERATOR)
+        {
+            std::cout << "OPERATOR: " << tokValue << std::endl;
+        }
+        else if (tok.type == token_types::GROUPING_OPERATOR)
+        {
+            std::cout << "GROUPING_OPERATOR: " << tokValue << std::endl;
+        }
+        else if (tok.type == token_types::FUNCTION)
+        {
+            std::cout << "FUNCTION: " << tokValue << std::endl;
+        }
+        else if (tok.type == token_types::VARIABLE)
+        {
+            std::cout << "VARIABLE: " << tokValue << std::endl;
+        }
+        else if (tok.type == token_types::ARGUMENT_SEPARATOR)
+        {
+            std::cout << "ARGUMENT_SEPARATOR: " << tokValue << std::endl;
+        }
+    }
+    std::cout << std::endl;
 };
 
-const std::unordered_map<string_t, expr::operator_info_t> expr::operator_info_map_ = {
-	{"+", {2, false}},
-	{"-", {2, false}},
-	{"*", {3, false}},
-	{"/", {3, false}},
-	{"%", {3, false}},
-	{"^", {4, true}}, // La exponenciación es asociativa por la derecha
-	{"==", {1, false}},
-	{"!=", {1, false}},
-	{"<", {1, false}},
-	{"<=", {1, false}},
-	{">", {1, false}},
-	{">=", {1, false}},
-	{"&&", {0, false}},
-	{"||", {0, false}},
-	{"!", {5, true}}, // Operadores unarios tienen mayor precedencia
-};
-
+const std::unordered_map<string_t, operator_info_t> expr::operator_info_map_ = {
+    {"+", {2, false, 2}},
+    {"-", {2, false, 2}},
+    {"*", {3, false, 2}},
+    {"/", {3, false, 2}},
+    {"%", {3, false, 2}},
+    {"^", {4, true, 2}}, // La exponenciación es asociativa por la derecha
+    {"==", {1, false, 2}},
+    {"!=", {1, false, 2}},
+    {"<", {1, false, 2}},
+    {"<=", {1, false, 2}},
+    {">", {1, false, 2}},
+    {">=", {1, false, 2}},
+    {"&&", {0, false, 2}},
+    {"||", {0, false, 2}},
+    {"!", {5, true, 1}}, // Operadores unarios tienen mayor precedencia
+    {".", {7, false, 2}},
+    {"[", {7, false, 2}},
+    {"[]", {7, false, 2}}};
 
 #pragma endregion
 
-
 #pragma region tokenization
-
 
 // tokenize the expression
 // Steps (in loop, order):
@@ -120,10 +123,11 @@ const std::unordered_map<string_t, expr::operator_info_t> expr::operator_info_ma
 //   4.3.2. Else the literal is a variable
 // 5. Check for ',' (argument separator) and validate that it is inside a function context
 // 6. If we find an invalid character, return an empty token stream
-expr::token_stream_t expr::tokenize() const
+token_stream_t expr::tokenize() const
 {
     std::vector<token_t> tokens;
     std::stack<bool> functionContextStack;
+    std::stack<char> groupingContextStack; // To track both '(' and '['
     const size_t length = expression_.length();
     size_t pos = 0;
 
@@ -146,7 +150,6 @@ expr::token_stream_t expr::tokenize() const
             if (expression_.compare(pos, opLength, opStr) == 0)
             {
                 tokens.emplace_back(token_types::OPERATOR, data_type::NULL_TYPE, token_data_t{opStr});
-
                 pos += opLength;
                 matched = true;
                 break;
@@ -156,44 +159,57 @@ expr::token_stream_t expr::tokenize() const
         if (matched)
             continue;
 
-        // Check grouping operators (parentheses)
-        if (currentChar == '(')
+        // Check grouping operators (parentheses and brackets)
+        if (currentChar == '(' || currentChar == '[')
         {
-            // If previous token is a function, we are in a function context
-            functionContextStack.push(!tokens.empty() && tokens.back().type == token_types::FUNCTION);
-            tokens.emplace_back(token_types::GROUPING_OPERATOR, data_type::NULL_TYPE, token_data_t(string_t("(")));
+            // For '(' check if previous token is a function
+            if (currentChar == '(')
+            {
+                bool isFunctionContext = !tokens.empty() && tokens.back().type == token_types::FUNCTION;
+                functionContextStack.push(isFunctionContext);
+            }
+
+            groupingContextStack.push(currentChar);
+            tokens.emplace_back(token_types::GROUPING_OPERATOR, data_type::NULL_TYPE, token_data_t(string_t(1, currentChar)));
             ++pos;
             continue;
         }
-        else if (currentChar == ')')
+        else if (currentChar == ')' || currentChar == ']')
         {
-            // Ensure there is a corresponding '(' in functionContextStack
-            if (functionContextStack.empty())
+            // Ensure there is a corresponding opening symbol
+            if (groupingContextStack.empty() ||
+                (currentChar == ')' && groupingContextStack.top() != '(') ||
+                (currentChar == ']' && groupingContextStack.top() != '['))
             {
-                throw std::runtime_error("Mismatched parentheses");
+                throw std::runtime_error("Mismatched grouping symbols");
             }
-            functionContextStack.pop();
-            tokens.emplace_back(token_types::GROUPING_OPERATOR, data_type::NULL_TYPE, token_data_t(string_t(")")));
+
+            // Pop the opening symbol
+            groupingContextStack.pop();
+
+            // Pop function context if necessary
+            if (currentChar == ')' && !functionContextStack.empty() && functionContextStack.top())
+            {
+                functionContextStack.pop();
+            }
+
+            tokens.emplace_back(token_types::GROUPING_OPERATOR, data_type::NULL_TYPE, token_data_t(string_t(1, currentChar)));
             ++pos;
             continue;
         }
 
         // Literals, variables, functions, and strings
-        if (std::isalnum(currentChar) || currentChar == '_' || currentChar == '"')
+        if (std::isdigit(currentChar) || currentChar == '.' || std::isalpha(currentChar) || currentChar == '_' || currentChar == '"')
         {
-            std::string literal;
-            bool isString = false;
-
-            // If it starts with a quote, it's a string literal
+            // Handle string literals
             if (currentChar == '"')
             {
-                isString = true;
+                std::string literal;
                 ++pos;
                 while (pos < length && expression_[pos] != '"')
                 {
                     literal += expression_[pos++];
                 }
-                // If end quote found, include it; otherwise, throw an error
                 if (pos < length && expression_[pos] == '"')
                 {
                     ++pos;
@@ -205,36 +221,62 @@ expr::token_stream_t expr::tokenize() const
                 tokens.emplace_back(token_types::LITERAL, data_type::STRING, token_data_t(literal));
                 continue;
             }
-            else
+
+            // Handle numbers and variables
+            if (std::isdigit(currentChar) || currentChar == '.')
             {
-                // Accumulate alphanumeric characters, underscores, and periods for literal
-                while (pos < length && (std::isalnum(expression_[pos]) || expression_[pos] == '_' || expression_[pos] == '.'))
+                // Parse number
+                std::string numberStr;
+                bool decimalPointEncountered = false;
+
+                while (pos < length && (std::isdigit(expression_[pos]) || expression_[pos] == '.'))
                 {
-                    literal += expression_[pos++];
+                    if (expression_[pos] == '.')
+                    {
+                        if (decimalPointEncountered)
+                        {
+                            throw std::runtime_error("Invalid number format: multiple decimal points");
+                        }
+                        decimalPointEncountered = true;
+                    }
+                    numberStr += expression_[pos++];
                 }
 
-                // Check if the literal is a function (next char is '(')
-                if (pos < length && expression_[pos] == '(')
-                {
-                    tokens.emplace_back(token_types::FUNCTION, data_type::NULL_TYPE, token_data_t(literal));
-                    continue;
-                }
-
-                // Check if the literal is a number
-                num_t number = stringToNumber(literal);
+                // Ensure number is valid
+                num_t number = stringToNumber(numberStr);
                 if (!std::isnan(number))
                 {
                     tokens.emplace_back(token_types::LITERAL, data_type::NUMBER, token_data_t(number));
                 }
-                else if (literals_.find(literal) != literals_.end())
+                else
                 {
-                    // Handle special literals (e.g., "true", "false", "null")
-                    tokens.emplace_back(token_types::LITERAL, data_type::STRING, token_data_t(literal));
+                    throw std::runtime_error("Invalid number format");
+                }
+                continue;
+            }
+            else // Handle variables and functions
+            {
+                std::string identifier;
+                while (pos < length && (std::isalnum(expression_[pos]) || expression_[pos] == '_'))
+                {
+                    identifier += expression_[pos++];
+                }
+
+                // Check if the identifier is a function (next char is '(')
+                if (pos < length && expression_[pos] == '(')
+                {
+                    tokens.emplace_back(token_types::FUNCTION, data_type::NULL_TYPE, token_data_t(identifier));
+                    continue;
+                }
+
+                // Handle literals like "true", "false", "null"
+                if (literals_.find(identifier) != literals_.end())
+                {
+                    tokens.emplace_back(token_types::LITERAL, data_type::STRING, token_data_t(identifier));
                 }
                 else
                 {
-                    // Otherwise, it's a variable
-                    tokens.emplace_back(token_types::VARIABLE, data_type::STRING, token_data_t(literal));
+                    tokens.emplace_back(token_types::VARIABLE, data_type::STRING, token_data_t(identifier));
                 }
                 continue;
             }
@@ -243,8 +285,9 @@ expr::token_stream_t expr::tokenize() const
         // Argument separator (',')
         if (currentChar == ',')
         {
-            // Ensure we are inside a function context
-            if (!functionContextStack.empty() && functionContextStack.top())
+            // Ensure we are inside a function context or bracket context
+            if ((!functionContextStack.empty() && functionContextStack.top()) ||
+                (!groupingContextStack.empty() && groupingContextStack.top() == '['))
             {
                 tokens.emplace_back(token_types::ARGUMENT_SEPARATOR, data_type::NULL_TYPE, token_data_t(string_t(",")));
                 ++pos;
@@ -252,12 +295,18 @@ expr::token_stream_t expr::tokenize() const
             }
             else
             {
-                throw std::runtime_error("Comma found outside function context");
+                throw std::runtime_error("Comma found outside function or bracket context");
             }
         }
 
         // If an invalid character is found, throw an error
         throw std::runtime_error(std::string("Invalid character in expression: ") + currentChar);
+    }
+
+    // At the end, ensure all grouping symbols are matched
+    if (!groupingContextStack.empty())
+    {
+        throw std::runtime_error("Unmatched grouping symbols in expression");
     }
 
     return tokens;
@@ -285,7 +334,7 @@ expr::token_stream_t expr::tokenize() const
 // When there are no more tokens to read:
 //  - While there are still operator tokens in the stack:
 //        Pop the operator onto the output queue or throw the error
-expr::token_stream_t expr::shunting_yard(const expr::token_stream_t &tokens) const
+token_stream_t expr::shunting_yard(const token_stream_t &tokens) const
 {
     token_stream_t outputQueue;
     std::stack<token_t> operatorStack;
@@ -310,17 +359,13 @@ expr::token_stream_t expr::shunting_yard(const expr::token_stream_t &tokens) con
         case token_types::OPERATOR:
         {
             const string_t &op1 = std::get<string_t>(tok.value);
-            auto it1 = operator_info_map_.find(op1);
-            if (it1 == operator_info_map_.end())
-            {
-                throw std::runtime_error("Unknown operator: " + op1);
-            }
-            const auto &opInfo1 = it1->second;
 
             // Process operators based on precedence and associativity
             while (!operatorStack.empty() && operatorStack.top().type == token_types::OPERATOR)
             {
                 const string_t &op2 = std::get<string_t>(operatorStack.top().value);
+
+                // Check if operators exist in the operator_info_map_
                 auto it2 = operator_info_map_.find(op2);
                 if (it2 == operator_info_map_.end())
                 {
@@ -328,8 +373,15 @@ expr::token_stream_t expr::shunting_yard(const expr::token_stream_t &tokens) con
                 }
                 const auto &opInfo2 = it2->second;
 
-                if ((opInfo1.right_associative && opInfo1.precedence < opInfo2.precedence) ||
-                    (!opInfo1.right_associative && opInfo1.precedence <= opInfo2.precedence))
+                auto it1 = operator_info_map_.find(op1);
+                if (it1 == operator_info_map_.end())
+                {
+                    throw std::runtime_error("Unknown operator: " + op1);
+                }
+                const auto &opInfo1 = it1->second;
+
+                if ((opInfo2.precedence > opInfo1.precedence) ||
+                    (opInfo2.precedence == opInfo1.precedence && !opInfo1.right_associative))
                 {
                     outputQueue.emplace_back(operatorStack.top());
                     operatorStack.pop();
@@ -340,6 +392,7 @@ expr::token_stream_t expr::shunting_yard(const expr::token_stream_t &tokens) con
                 }
             }
             operatorStack.push(tok);
+
             break;
         }
 
@@ -352,29 +405,29 @@ expr::token_stream_t expr::shunting_yard(const expr::token_stream_t &tokens) con
             }
             else if (tokenValue == ")")
             {
-                // Pop until matching left parenthesis is found
-                bool foundLeftParen = false;
+                // Pop operators until matching '(' is found
+                bool foundMatchingOpening = false;
                 while (!operatorStack.empty())
                 {
-                    const auto &topTok = operatorStack.top();
-                    if (topTok.type == token_types::GROUPING_OPERATOR && std::get<string_t>(topTok.value) == "(")
+                    if (operatorStack.top().type == token_types::GROUPING_OPERATOR &&
+                        std::get<string_t>(operatorStack.top().value) == "(")
                     {
                         operatorStack.pop();
-                        foundLeftParen = true;
+                        foundMatchingOpening = true;
                         break;
                     }
                     else
                     {
-                        outputQueue.emplace_back(topTok);
+                        outputQueue.emplace_back(operatorStack.top());
                         operatorStack.pop();
                     }
                 }
-                if (!foundLeftParen)
+                if (!foundMatchingOpening)
                 {
                     throw std::runtime_error("Mismatched parentheses");
                 }
 
-                // If the top of the stack is a function, pop it to the output queue
+                // If the token at the top of the stack is a function, pop it onto the output queue
                 if (!operatorStack.empty() && operatorStack.top().type == token_types::FUNCTION)
                 {
                     outputQueue.emplace_back(operatorStack.top());
@@ -383,36 +436,133 @@ expr::token_stream_t expr::shunting_yard(const expr::token_stream_t &tokens) con
                     functionContextStack.pop();
                 }
             }
+            else if (tokenValue == "[")
+            {
+                // Before pushing '[', process operators on the stack
+                auto it1 = operator_info_map_.find("[");
+                if (it1 == operator_info_map_.end())
+                {
+                    throw std::runtime_error("Unknown operator: [");
+                }
+                const auto &opInfo1 = it1->second;
+
+                while (!operatorStack.empty() && operatorStack.top().type == token_types::OPERATOR)
+                {
+                    const string_t &op2 = std::get<string_t>(operatorStack.top().value);
+                    auto it2 = operator_info_map_.find(op2);
+                    if (it2 == operator_info_map_.end())
+                    {
+                        throw std::runtime_error("Unknown operator: " + op2);
+                    }
+                    const auto &opInfo2 = it2->second;
+
+                    if ((opInfo2.precedence > opInfo1.precedence) ||
+                        (opInfo2.precedence == opInfo1.precedence && !opInfo1.right_associative))
+                    {
+                        outputQueue.emplace_back(operatorStack.top());
+                        operatorStack.pop();
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                operatorStack.push(tok);
+            }
+            else if (tokenValue == "]")
+            {
+                // Pop operators until matching '[' is found
+                bool foundMatchingOpening = false;
+                while (!operatorStack.empty())
+                {
+                    if (operatorStack.top().type == token_types::GROUPING_OPERATOR &&
+                        std::get<string_t>(operatorStack.top().value) == "[")
+                    {
+                        operatorStack.pop();
+                        foundMatchingOpening = true;
+                        break;
+                    }
+                    else
+                    {
+                        outputQueue.emplace_back(operatorStack.top());
+                        operatorStack.pop();
+                    }
+                }
+                if (!foundMatchingOpening)
+                {
+                    throw std::runtime_error("Mismatched brackets");
+                }
+                // Add the '[]' postfix operator to the output queue
+                token_t indexOperator(token_types::OPERATOR, data_type::NULL_TYPE, string_t("[]"));
+                // check the operatorStack
+
+                while (!operatorStack.empty() && operatorStack.top().type == token_types::OPERATOR)
+                {
+                    const string_t &op2 = std::get<string_t>(operatorStack.top().value);
+
+                    // Check if operators exist in the operator_info_map_
+                    auto it2 = operator_info_map_.find(op2);
+                    if (it2 == operator_info_map_.end())
+                    {
+                        throw std::runtime_error("Unknown operator: " + op2);
+                    }
+                    const auto &opInfo2 = it2->second;
+
+                    auto it1 = operator_info_map_.find("[]");
+                    if (it1 == operator_info_map_.end())
+                    {
+                        throw std::runtime_error("Unknown operator: []");
+                    }
+                    const auto &opInfo1 = it1->second;
+
+                    if ((opInfo2.precedence > opInfo1.precedence) ||
+                        (opInfo2.precedence == opInfo1.precedence && !opInfo1.right_associative))
+                    {
+                        outputQueue.emplace_back(operatorStack.top());
+                        operatorStack.pop();
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                operatorStack.push(indexOperator);
+            }
             break;
         }
 
         case token_types::ARGUMENT_SEPARATOR:
         {
-            // Ensure argument separator is within function context
-            if (functionContextStack.empty() || !functionContextStack.top())
+            // Ensure argument separator is within function or index context
+            if ((!functionContextStack.empty() && functionContextStack.top()) ||
+                (!operatorStack.empty() && operatorStack.top().type == token_types::GROUPING_OPERATOR &&
+                 std::get<string_t>(operatorStack.top().value) == "["))
             {
-                throw std::runtime_error("Argument separator ',' used outside of function arguments.");
-            }
-
-            // Pop all operators until a left parenthesis is found
-            while (!operatorStack.empty())
-            {
-                const auto &topTok = operatorStack.top();
-                if (topTok.type == token_types::GROUPING_OPERATOR && std::get<string_t>(topTok.value) == "(")
+                // Pop operators until a left parenthesis or bracket is found
+                while (!operatorStack.empty())
                 {
-                    break;
+                    const auto &topTok = operatorStack.top();
+                    if (topTok.type == token_types::GROUPING_OPERATOR &&
+                        (std::get<string_t>(topTok.value) == "(" || std::get<string_t>(topTok.value) == "["))
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        outputQueue.emplace_back(topTok);
+                        operatorStack.pop();
+                    }
                 }
-                else
+
+                // Increment argument count if in function context
+                if (!argCountStack.empty() && functionContextStack.top())
                 {
-                    outputQueue.emplace_back(topTok);
-                    operatorStack.pop();
+                    ++argCountStack.top();
                 }
             }
-
-            // Increment argument count if in function context
-            if (!argCountStack.empty())
+            else
             {
-                ++argCountStack.top();
+                throw std::runtime_error("Argument separator ',' used outside of function or index arguments.");
             }
             break;
         }
@@ -428,7 +578,7 @@ expr::token_stream_t expr::shunting_yard(const expr::token_stream_t &tokens) con
         const auto &topTok = operatorStack.top();
         if (topTok.type == token_types::GROUPING_OPERATOR)
         {
-            throw std::runtime_error("Mismatched parentheses");
+            throw std::runtime_error("Mismatched grouping symbols");
         }
         outputQueue.emplace_back(topTok);
         operatorStack.pop();
@@ -453,7 +603,7 @@ expr::token_stream_t expr::shunting_yard(const expr::token_stream_t &tokens) con
 //          else call the unknown symbol resolver,
 //          else set the flag error and chage the sequence until close the function to NaN
 // 4. If the token is an operator, add it to the output queue
-expr::token_stream_t expr::token_resolver(const expr::token_stream_t &tokens)
+token_stream_t expr::token_resolver(const token_stream_t &tokens)
 {
     // dummy implementation
     return tokens;
@@ -524,29 +674,58 @@ expr::token_stream_t expr::token_resolver(const expr::token_stream_t &tokens)
     // }
 }
 
-
 // # TODO:
 // 1. Evaluar funciones en el stack de operadores con los argumentos en tipado dinamico
 // 2. Asegurar los tipos
-token_data_t expr::evaluate_postfix(const expr::token_stream_t &postfixTokens) const
+token_data_t expr::evaluate_postfix(const token_stream_t &postfixTokens) const
 {
-    std::stack<token_data_t> evaluationStack;
+    std::stack<token_t> evaluationStack;
+
+    auto resolve_operand = [&](const token_t &operand) -> token_data_t {
+        if(operand.type == token_types::LITERAL){
+            return operand.value;
+        }
+        else if (operand.type == token_types::VARIABLE)
+        {
+            auto var_name = std::get<string_t>(operand.value);
+            auto var = variables_.find(var_name);
+            if (var != variables_.end())
+            {
+                return var->second;
+            }
+            else
+            {
+                if (unknown_var_resolver_)
+                {
+                    token_data_t value = unknown_var_resolver_(var_name);
+                    json_to_correct_dtype(value);
+                    return value;
+                }
+                else
+                {
+                    throw std::runtime_error("Undefined variable: " + var_name);
+                }
+            }
+        }
+        else return std::numeric_limits<num_t>::quiet_NaN();
+    };
 
     for (const auto &tok : postfixTokens)
     {
         switch (tok.type)
         {
+        case token_types::VARIABLE:
         case token_types::LITERAL:
         {
             // Convert the literal to a double and push it onto the stack
-            evaluationStack.push(tok.value);
+            evaluationStack.push(tok);
             break;
         }
         case token_types::FUNCTION:
         {
             auto func_name = std::get<string_t>(tok.value);
             auto func_m = m_functions_builtin.find(func_name);
-            if(func_m != m_functions_builtin.end())
+            if (func_m != m_functions_builtin.end())
             {
                 std::vector<token_data_t> args;
                 for (int i = 0; i < func_m->second.num_args; i++)
@@ -555,7 +734,8 @@ token_data_t expr::evaluate_postfix(const expr::token_stream_t &postfixTokens) c
                     {
                         throw std::runtime_error("Not enough arguments for function: " + std::get<string_t>(tok.value));
                     }
-                    args.push_back(evaluationStack.top()); /////////////////////NO ESTA BIEN///////////////////////
+                    args.push_back(resolve_operand(evaluationStack.top()));
+                    // args.push_back(evaluationStack.top()); /////////////////////NO ESTA BIEN///////////////////////
                     evaluationStack.pop();
                 }
 
@@ -564,7 +744,8 @@ token_data_t expr::evaluate_postfix(const expr::token_stream_t &postfixTokens) c
                 auto args_validated = m_parser_builtins::m_function_validator(args.data(), args.size(), func_m->second.num_args);
 
                 num_t result = func_m->second.func(args_validated.data());
-                evaluationStack.push(result);
+                auto result_t = token_t(token_types::LITERAL, data_type::NUMBER, result);
+                evaluationStack.push(result_t);
             }
             else
             {
@@ -586,14 +767,17 @@ token_data_t expr::evaluate_postfix(const expr::token_stream_t &postfixTokens) c
                     {
                         throw std::runtime_error("Not enough arguments for function: " + std::get<string_t>(tok.value));
                     }
-                    args.push_back(evaluationStack.top());
+                    args.push_back(resolve_operand(evaluationStack.top()));
+                    // args.push_back(evaluationStack.top());
                     evaluationStack.pop();
                 }
 
                 // Call the function and push the result back onto the stack
                 std::reverse(args.begin(), args.end());
                 auto result = func_f->second.func(args.data());
-                evaluationStack.push(result);
+                auto dtype = result.index();
+                auto result_t = token_t(token_types::LITERAL, (data_type)dtype, result);
+                evaluationStack.push(result_t);
             }
             break;
         }
@@ -601,13 +785,14 @@ token_data_t expr::evaluate_postfix(const expr::token_stream_t &postfixTokens) c
         {
             auto op = std::get<string_t>(tok.value);
             // Pop the operands
-            if (evaluationStack.size() < 2)
+            if (evaluationStack.size() < operator_info_map_.at(op).num_args)
             {
                 throw std::runtime_error("Not enough operands for operator: " + std::get<string_t>(tok.value));
             }
-            auto op2 = evaluationStack.top();
+            token_data_t op2 = evaluationStack.top().value;
+            if(op != ".") op2 = resolve_operand(evaluationStack.top());
             evaluationStack.pop();
-            auto op1 = evaluationStack.top();
+            auto op1 = resolve_operand(evaluationStack.top());
             evaluationStack.pop();
 
             // Perform the operation
@@ -672,40 +857,26 @@ token_data_t expr::evaluate_postfix(const expr::token_stream_t &postfixTokens) c
             {
                 result = operators_builtins::not_f(op1);
             }
+            else if (op == ".")
+            {
+                result = operators_builtins::access_f(op1, op2);
+            }
+            else if (op == "[]")
+            {
+                result = operators_builtins::index_f(op1, op2);
+            }
             else
             {
                 throw std::runtime_error("Unknown operator: " + op);
             }
             // Push the result back onto the stack
-            evaluationStack.push(result);
+            auto dtype = result.index();
+            auto result_t = token_t(token_types::LITERAL, (data_type)dtype, result);
+            evaluationStack.push(result_t);
 
             break;
         }
-        case token_types::VARIABLE:
-        {
-            auto var_name = std::get<string_t>(tok.value);
-            auto var = variables_.find(var_name);
-            if (var != variables_.end())
-            {
-                auto a = var->second;
-                evaluationStack.push(a);
-            }
-            else
-            {
-                if (unknown_var_resolver_)
-                {
-                    token_data_t value = unknown_var_resolver_(var_name);
-                    json_to_correct_dtype(value);
-                    evaluationStack.push(value);
-                }
-                else
-                {
-                    throw std::runtime_error("Undefined variable: " + var_name);
-                }
-                
-            }
-            break;
-        } 
+        
         default:
         {
             throw std::runtime_error("Unknown token type");
@@ -716,10 +887,9 @@ token_data_t expr::evaluate_postfix(const expr::token_stream_t &postfixTokens) c
             {
                 throw std::runtime_error("Invalid this->expression_");
             }
-            return evaluationStack.top();
+            return evaluationStack.top().value;
         }
     }
-    auto result = evaluationStack.top();
-    return result;
-}
 
+    return evaluationStack.top().value;
+}
