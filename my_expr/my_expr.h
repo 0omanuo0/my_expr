@@ -1051,7 +1051,7 @@ class expr
 	const std::unordered_map<string_t, f_function_info> f_functions_builtin = {
 		{"toNum", {f_parser_builtins::to_num, 1}},
 		{"toStr", {f_parser_builtins::to_str, 1}},
-		{"toJon", {f_parser_builtins::to_json, 1}},
+		{"toJson", {f_parser_builtins::to_json, 1}},
 		{"len", {f_parser_builtins::len_f, 1}},
 		{"sum", {f_parser_builtins::sum_f, 1}}, ///// keys y values
 		{"capitalize", {f_parser_builtins::capitalize_f, 1}},
