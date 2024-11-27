@@ -16,9 +16,9 @@ void expr::compile()
         auto tokens = this->tokenize();
         if (tokens.empty())
             return;
-        this->print_tokens(tokens);
+        // this->print_tokens(tokens);
         auto outputQueue = this->shunting_yard(tokens);
-        this->print_tokens(outputQueue);
+        // this->print_tokens(outputQueue);
 
         this->output_compiled_ = outputQueue;
     }
@@ -112,7 +112,7 @@ const std::unordered_map<string_t, operator_info_t> expr::operator_info_map_ = {
 // Steps (in loop, order):
 // 1. Skip whitespaces
 // 2. Check for operators
-// 3. Check for grouping operators, i.e. ( )
+// 3. Check for grouping operators, i.e. ( ), [ ]
 //   3.1. If the previous token is a function, we are in a function context TAKE CARE OF THIS
 //   3.2. Otherwise, we are in a grouping context
 // 4. Check for literals (variables, numbers, etc.)
@@ -130,6 +130,7 @@ token_stream_t expr::tokenize() const
     std::stack<char> groupingContextStack; // To track both '(' and '['
     const size_t length = expression_.length();
     size_t pos = 0;
+    bool isNegative = false;
 
     while (pos < length)
     {
@@ -143,21 +144,27 @@ token_stream_t expr::tokenize() const
         }
 
         // Check for operators
+        // 
         bool matched = false;
         for (const auto &opStr : operators_)
         {
             size_t opLength = opStr.length();
             if (expression_.compare(pos, opLength, opStr) == 0)
             {
-                tokens.emplace_back(token_types::OPERATOR, data_type::NULL_TYPE, token_data_t{opStr});
+                // if - is start, or previous token is an operator, then is a negative number
+                isNegative = opStr == "-" && (tokens.empty() || tokens.back().type == token_types::OPERATOR);
+                if (!isNegative)
+                {
+                    tokens.emplace_back(token_types::OPERATOR, data_type::NULL_TYPE, token_data_t{opStr});
+                }
+                
                 pos += opLength;
                 matched = true;
                 break;
             }
         }
+        if (matched) continue;
 
-        if (matched)
-            continue;
 
         // Check grouping operators (parentheses and brackets)
         if (currentChar == '(' || currentChar == '[')
@@ -246,6 +253,8 @@ token_stream_t expr::tokenize() const
                 num_t number = stringToNumber(numberStr);
                 if (!std::isnan(number))
                 {
+                    number = isNegative ? -number : number;
+                    isNegative = false;
                     tokens.emplace_back(token_types::LITERAL, data_type::NUMBER, token_data_t(number));
                 }
                 else
@@ -855,7 +864,8 @@ token_data_t expr::evaluate_postfix(const token_stream_t &postfixTokens) const
             }
             else if (op == "!")
             {
-                result = operators_builtins::not_f(op1);
+                result = operators_builtins::not_f(op2);
+                evaluationStack.push(token_t(token_types::LITERAL, (data_type)op1.index(), op1));
             }
             else if (op == ".")
             {
