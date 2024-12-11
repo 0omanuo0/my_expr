@@ -13,7 +13,34 @@
 #include "json.hpp"
 #include "my_expr_dtypes.h"
 
-inline double stringToNumber(const std::string &str)
+inline std::unordered_map<std::string, std::variant<double, std::string, nlohmann::json>> convert_to_variant_map(
+    const nlohmann::json &input)
+{
+    if (input.empty())
+        return {};
+    
+
+    const auto input_dict = input.get<std::unordered_map<std::string, nlohmann::json>>();
+    std::unordered_map<std::string, std::variant<double, std::string, nlohmann::json>> result;
+    for (const auto &[key, value] : input_dict)
+    {
+        if (value.is_number())
+        {
+            result[key] = value.get<double>();
+        }
+        else if (value.is_string())
+        {
+            result[key] = value.get<std::string>();
+        }
+        else
+        {
+            result[key] = value;
+        }
+    }
+    return result;
+}
+
+inline double stringToNumber2(const std::string &str)
 {
     char *ptr;
     auto r = std::strtod(str.c_str(), &ptr);
