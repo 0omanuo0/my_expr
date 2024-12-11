@@ -71,7 +71,7 @@ struct m_function_info
 
 
 // functions that can transform any token_data_t to other token_data_t despite of the type
-using f_generic_function = token_data_t (*)(const token_data_t *args);
+using f_generic_function = std::function<token_data_t(const token_data_t *)>;
 
 struct f_function_info
 {
