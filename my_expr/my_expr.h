@@ -248,7 +248,7 @@ namespace f_parser_builtins
 		}
 		return json_t();
 	}
-	
+
 	inline token_data_t len_f(const token_data_t *args)
 	{
 		if (args[0].index() == 1)
@@ -286,7 +286,7 @@ namespace f_parser_builtins
 		}
 		return (num_t)0;
 	}
-	
+
 	inline token_data_t capitalize_f(const token_data_t *args)
 	{
 		if (args[0].index() == 1)
@@ -332,7 +332,8 @@ namespace f_parser_builtins
 			std::vector<string_t> result;
 			size_t pos = 0;
 			std::string token;
-			while ((pos = s.find(delim)) != std::string::npos) {
+			while ((pos = s.find(delim)) != std::string::npos)
+			{
 				token = s.substr(0, pos);
 				result.push_back(token);
 				s.erase(0, pos + delim.length());
@@ -343,15 +344,19 @@ namespace f_parser_builtins
 		return json_t();
 	}
 
-	inline token_data_t join_f(const token_data_t *args){
-		if(args[0].index() == 2 && args[1].index() == 1){
+	inline token_data_t join_f(const token_data_t *args)
+	{
+		if (args[0].index() == 2 && args[1].index() == 1)
+		{
 			auto j = std::get<json_t>(args[0]);
 			auto delim = std::get<string_t>(args[1]);
 			string_t result = "";
-			for(auto &v : j){
+			for (auto &v : j)
+			{
 				result += v.get<string_t>() + delim;
 			}
-			if(result.size() > 0){
+			if (result.size() > 0)
+			{
 				result.erase(result.size() - delim.size(), delim.size());
 			}
 			return result;
@@ -359,13 +364,16 @@ namespace f_parser_builtins
 		return string_t("");
 	}
 
-	inline token_data_t replace_f(const token_data_t *args){
-		if(args[0].index() == 1 && args[1].index() == 1 && args[2].index() == 1){
+	inline token_data_t replace_f(const token_data_t *args)
+	{
+		if (args[0].index() == 1 && args[1].index() == 1 && args[2].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
 			auto old = std::get<string_t>(args[1]);
 			auto new_ = std::get<string_t>(args[2]);
 			size_t start_pos = 0;
-			while((start_pos = s.find(old, start_pos)) != std::string::npos) {
+			while ((start_pos = s.find(old, start_pos)) != std::string::npos)
+			{
 				s.replace(start_pos, old.length(), new_);
 				start_pos += new_.length();
 			}
@@ -374,17 +382,22 @@ namespace f_parser_builtins
 		return string_t("");
 	}
 
-	inline token_data_t find_f(const token_data_t *args){
-		if(args[0].index() == 1 && args[1].index() == 1){
+	inline token_data_t find_f(const token_data_t *args)
+	{
+		if (args[0].index() == 1 && args[1].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
 			auto sub = std::get<string_t>(args[1]);
 			return static_cast<num_t>(s.find(sub));
 		}
-		else if(args[0].index() == 2 && args[1].index() == 1){
+		else if (args[0].index() == 2 && args[1].index() == 1)
+		{
 			auto j = std::get<json_t>(args[0]);
 			auto sub = std::get<string_t>(args[1]);
-			for(size_t i = 0; i < j.size(); i++){
-				if(j[i].is_string() && j[i].get<string_t>().find(sub) != std::string::npos){
+			for (size_t i = 0; i < j.size(); i++)
+			{
+				if (j[i].is_string() && j[i].get<string_t>().find(sub) != std::string::npos)
+				{
 					return static_cast<num_t>(i);
 				}
 			}
@@ -392,24 +405,30 @@ namespace f_parser_builtins
 		return (num_t)-1;
 	}
 
-	inline token_data_t count_f(const token_data_t *args){
-		if(args[0].index() == 1 && args[1].index() == 1){
+	inline token_data_t count_f(const token_data_t *args)
+	{
+		if (args[0].index() == 1 && args[1].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
 			auto sub = std::get<string_t>(args[1]);
 			size_t count = 0;
 			size_t pos = 0;
-			while ((pos = s.find(sub, pos)) != std::string::npos) {
+			while ((pos = s.find(sub, pos)) != std::string::npos)
+			{
 				++count;
 				pos += sub.length();
 			}
 			return static_cast<num_t>(count);
 		}
-		else if(args[0].index() == 2 && args[1].index() == 1){
+		else if (args[0].index() == 2 && args[1].index() == 1)
+		{
 			auto j = std::get<json_t>(args[0]);
 			auto sub = std::get<string_t>(args[1]);
 			size_t count = 0;
-			for(size_t i = 0; i < j.size(); i++){
-				if(j[i].is_string() && j[i].get<string_t>().find(sub) != std::string::npos){
+			for (size_t i = 0; i < j.size(); i++)
+			{
+				if (j[i].is_string() && j[i].get<string_t>().find(sub) != std::string::npos)
+				{
 					++count;
 				}
 			}
@@ -418,17 +437,22 @@ namespace f_parser_builtins
 		return (num_t)0;
 	}
 
-	inline token_data_t startswith_f(const token_data_t *args){
-		if(args[0].index() == 1 && args[1].index() == 1){
+	inline token_data_t startswith_f(const token_data_t *args)
+	{
+		if (args[0].index() == 1 && args[1].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
 			auto sub = std::get<string_t>(args[1]);
 			return static_cast<num_t>(s.find(sub) == 0);
 		}
-		else if(args[0].index() == 2 && args[1].index() == 1){
+		else if (args[0].index() == 2 && args[1].index() == 1)
+		{
 			auto j = std::get<json_t>(args[0]);
 			auto sub = std::get<string_t>(args[1]);
-			for(size_t i = 0; i < j.size(); i++){
-				if(j[i].is_string() && j[i].get<string_t>().find(sub) == 0){
+			for (size_t i = 0; i < j.size(); i++)
+			{
+				if (j[i].is_string() && j[i].get<string_t>().find(sub) == 0)
+				{
 					return static_cast<num_t>(1);
 				}
 			}
@@ -436,17 +460,22 @@ namespace f_parser_builtins
 		return (num_t)0;
 	}
 
-	inline token_data_t endswith_f(const token_data_t *args){
-		if(args[0].index() == 1 && args[1].index() == 1){
+	inline token_data_t endswith_f(const token_data_t *args)
+	{
+		if (args[0].index() == 1 && args[1].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
 			auto sub = std::get<string_t>(args[1]);
 			return static_cast<num_t>(s.rfind(sub) == s.size() - sub.size());
 		}
-		else if(args[0].index() == 2 && args[1].index() == 1){
+		else if (args[0].index() == 2 && args[1].index() == 1)
+		{
 			auto j = std::get<json_t>(args[0]);
 			auto sub = std::get<string_t>(args[1]);
-			for(size_t i = 0; i < j.size(); i++){
-				if(j[i].is_string() && j[i].get<string_t>().rfind(sub) == j[i].get<string_t>().size() - sub.size()){
+			for (size_t i = 0; i < j.size(); i++)
+			{
+				if (j[i].is_string() && j[i].get<string_t>().rfind(sub) == j[i].get<string_t>().size() - sub.size())
+				{
 					return static_cast<num_t>(1);
 				}
 			}
@@ -454,18 +483,24 @@ namespace f_parser_builtins
 		return (num_t)0;
 	}
 
-	inline token_data_t isdigit_f(const token_data_t *args){
-		if(args[0].index() == 0){
+	inline token_data_t isdigit_f(const token_data_t *args)
+	{
+		if (args[0].index() == 0)
+		{
 			return static_cast<num_t>(1);
 		}
-		if(args[0].index() == 1){
+		if (args[0].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
 			return static_cast<num_t>(std::all_of(s.begin(), s.end(), ::isdigit));
 		}
-		else if(args[0].index() == 2){
+		else if (args[0].index() == 2)
+		{
 			auto j = std::get<json_t>(args[0]);
-			for(size_t i = 0; i < j.size(); i++){
-				if(j[i].is_string() && !std::all_of(j[i].get<string_t>().begin(), j[i].get<string_t>().end(), ::isdigit)){
+			for (size_t i = 0; i < j.size(); i++)
+			{
+				if (j[i].is_string() && !std::all_of(j[i].get<string_t>().begin(), j[i].get<string_t>().end(), ::isdigit))
+				{
 					return static_cast<num_t>(0);
 				}
 			}
@@ -474,18 +509,24 @@ namespace f_parser_builtins
 		return (num_t)0;
 	}
 
-	inline token_data_t isalpha_f(const token_data_t *args){
-		if(args[0].index() == 0){
+	inline token_data_t isalpha_f(const token_data_t *args)
+	{
+		if (args[0].index() == 0)
+		{
 			return static_cast<num_t>(0);
 		}
-		if(args[0].index() == 1){
+		if (args[0].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
 			return static_cast<num_t>(std::all_of(s.begin(), s.end(), ::isalpha));
 		}
-		else if(args[0].index() == 2){
+		else if (args[0].index() == 2)
+		{
 			auto j = std::get<json_t>(args[0]);
-			for(size_t i = 0; i < j.size(); i++){
-				if(j[i].is_string() && !std::all_of(j[i].get<string_t>().begin(), j[i].get<string_t>().end(), ::isalpha)){
+			for (size_t i = 0; i < j.size(); i++)
+			{
+				if (j[i].is_string() && !std::all_of(j[i].get<string_t>().begin(), j[i].get<string_t>().end(), ::isalpha))
+				{
 					return static_cast<num_t>(0);
 				}
 			}
@@ -494,18 +535,24 @@ namespace f_parser_builtins
 		return (num_t)0;
 	}
 
-	inline token_data_t isalnum_f(const token_data_t *args){
-		if(args[0].index() == 0){
+	inline token_data_t isalnum_f(const token_data_t *args)
+	{
+		if (args[0].index() == 0)
+		{
 			return static_cast<num_t>(0);
 		}
-		if(args[0].index() == 1){
+		if (args[0].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
 			return static_cast<num_t>(std::all_of(s.begin(), s.end(), ::isalnum));
 		}
-		else if(args[0].index() == 2){
+		else if (args[0].index() == 2)
+		{
 			auto j = std::get<json_t>(args[0]);
-			for(size_t i = 0; i < j.size(); i++){
-				if(j[i].is_string() && !std::all_of(j[i].get<string_t>().begin(), j[i].get<string_t>().end(), ::isalnum)){
+			for (size_t i = 0; i < j.size(); i++)
+			{
+				if (j[i].is_string() && !std::all_of(j[i].get<string_t>().begin(), j[i].get<string_t>().end(), ::isalnum))
+				{
 					return static_cast<num_t>(0);
 				}
 			}
@@ -514,16 +561,21 @@ namespace f_parser_builtins
 		return (num_t)0;
 	}
 
-	inline token_data_t isnan_f(const token_data_t *args){
-		if(args[0].index() == 0){
+	inline token_data_t isnan_f(const token_data_t *args)
+	{
+		if (args[0].index() == 0)
+		{
 			return static_cast<num_t>(std::isnan(std::get<num_t>(args[0])));
 		}
-		else if(args[0].index() == 1){
-			return static_cast<num_t>(std::isnan(stringToNumber(std::get<string_t>(args[0]))));
+		else if (args[0].index() == 1)
+		{
+			return static_cast<num_t>(std::isnan(stringToNumber2(std::get<string_t>(args[0]))));
 		}
-		else if(args[0].index() == 2){
+		else if (args[0].index() == 2)
+		{
 			auto j = std::get<json_t>(args[0]);
-			if(json_is_number(j)){
+			if (json_is_number(j))
+			{
 				return static_cast<num_t>(std::isnan(j.get<num_t>()));
 			}
 			return static_cast<num_t>(1);
@@ -531,32 +583,41 @@ namespace f_parser_builtins
 		return (num_t)0;
 	}
 
-	inline token_data_t isinf_f(const token_data_t *args){
-		if(args[0].index() == 0){
+	inline token_data_t isinf_f(const token_data_t *args)
+	{
+		if (args[0].index() == 0)
+		{
 			return static_cast<num_t>(std::isinf(std::get<num_t>(args[0])));
 		}
-		else if(args[0].index() == 1){
-			return static_cast<num_t>(std::isinf(stringToNumber(std::get<string_t>(args[0]))));
+		else if (args[0].index() == 1)
+		{
+			return static_cast<num_t>(std::isinf(stringToNumber2(std::get<string_t>(args[0]))));
 		}
-		else if(args[0].index() == 2){
+		else if (args[0].index() == 2)
+		{
 			auto j = std::get<json_t>(args[0]);
-			if(json_is_number(j)){
+			if (json_is_number(j))
+			{
 				return static_cast<num_t>(std::isinf(j.get<num_t>()));
 			}
 			return static_cast<num_t>(1);
 		}
 		return (num_t)0;
 	}
-	
-	inline token_data_t reverse_f(const token_data_t *args){
-		if(args[0].index() == 1){
+
+	inline token_data_t reverse_f(const token_data_t *args)
+	{
+		if (args[0].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
 			std::reverse(s.begin(), s.end());
 			return s;
 		}
-		else if(args[0].index() == 2){
+		else if (args[0].index() == 2)
+		{
 			auto j = std::get<json_t>(args[0]);
-			if(j.is_array()){
+			if (j.is_array())
+			{
 				std::reverse(j.begin(), j.end());
 				return j;
 			}
@@ -564,10 +625,13 @@ namespace f_parser_builtins
 		return json_t();
 	}
 
-	inline token_data_t sort_f(const token_data_t *args){
-		if(args[0].index() == 2){
+	inline token_data_t sort_f(const token_data_t *args)
+	{
+		if (args[0].index() == 2)
+		{
 			auto j = std::get<json_t>(args[0]);
-			if(j.is_array()){
+			if (j.is_array())
+			{
 				std::sort(j.begin(), j.end());
 				return j;
 			}
@@ -575,12 +639,16 @@ namespace f_parser_builtins
 		return json_t();
 	}
 
-	inline token_data_t keys_f(const token_data_t *args){
-		if(args[0].index() == 2){
+	inline token_data_t keys_f(const token_data_t *args)
+	{
+		if (args[0].index() == 2)
+		{
 			auto j = std::get<json_t>(args[0]);
-			if(j.is_object()){
+			if (j.is_object())
+			{
 				std::vector<string_t> keys;
-				for(auto it = j.begin(); it != j.end(); ++it){
+				for (auto it = j.begin(); it != j.end(); ++it)
+				{
 					keys.push_back(it.key());
 				}
 				return keys;
@@ -589,12 +657,16 @@ namespace f_parser_builtins
 		return json_t();
 	}
 
-	inline token_data_t values_f(const token_data_t *args){
-		if(args[0].index() == 2){
+	inline token_data_t values_f(const token_data_t *args)
+	{
+		if (args[0].index() == 2)
+		{
 			auto j = std::get<json_t>(args[0]);
-			if(j.is_object()){
+			if (j.is_object())
+			{
 				std::vector<json_t> values;
-				for(auto it = j.begin(); it != j.end(); ++it){
+				for (auto it = j.begin(); it != j.end(); ++it)
+				{
 					values.push_back(it.value());
 				}
 				return values;
@@ -1160,7 +1232,6 @@ class expr
 		{"sort", {f_parser_builtins::sort_f, 1}},
 		{"keys", {f_parser_builtins::keys_f, 1}},
 		{"values", {f_parser_builtins::values_f, 1}}};
-
 
 #pragma endregion
 

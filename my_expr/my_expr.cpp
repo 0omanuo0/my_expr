@@ -273,7 +273,7 @@ token_stream_t expr::tokenize() const
                 }
                 else
                     throw std::runtime_error("Invalid number format");
-                    
+
                 continue;
             }
             else // Handle variables and functions
@@ -411,140 +411,140 @@ token_stream_t expr::shunting_yard(const token_stream_t &tokens) const
     {
         switch (tok.type)
         {
-            case token_types::LITERAL:
-            case token_types::VARIABLE:
-                outputQueue.emplace_back(tok);
-                break;
+        case token_types::LITERAL:
+        case token_types::VARIABLE:
+            outputQueue.emplace_back(tok);
+            break;
 
-            case token_types::FUNCTION:
-                operatorStack.push(tok);
-                argCountStack.push(1);           // Initialize function argument count
-                functionContextStack.push(true); // Enter function context
-                break;
+        case token_types::FUNCTION:
+            operatorStack.push(tok);
+            argCountStack.push(1);           // Initialize function argument count
+            functionContextStack.push(true); // Enter function context
+            break;
 
-            case token_types::OPERATOR:
-            {
-                const string_t &op1 = std::get<string_t>(tok.value);
+        case token_types::OPERATOR:
+        {
+            const string_t &op1 = std::get<string_t>(tok.value);
             const auto &opInfo1 = get_operator_info(op1);
-                process_operator_stack(op1, opInfo1);
-                operatorStack.push(tok);
-                break;
-            }
+            process_operator_stack(op1, opInfo1);
+            operatorStack.push(tok);
+            break;
+        }
 
-            case token_types::GROUPING_OPERATOR:
+        case token_types::GROUPING_OPERATOR:
+        {
+            const string_t &tokenValue = std::get<string_t>(tok.value);
+
+            if (tokenValue == "(")
             {
-                const string_t &tokenValue = std::get<string_t>(tok.value);
-
-                if (tokenValue == "(")
+                operatorStack.push(tok);
+            }
+            else if (tokenValue == ")")
+            {
+                // Pop operators until matching '(' is found
+                bool foundMatchingOpening = false;
+                while (!operatorStack.empty())
                 {
-                    operatorStack.push(tok);
-                }
-                else if (tokenValue == ")")
-                {
-                    // Pop operators until matching '(' is found
-                    bool foundMatchingOpening = false;
-                    while (!operatorStack.empty())
+                    if (operatorStack.top().type == token_types::GROUPING_OPERATOR &&
+                        std::get<string_t>(operatorStack.top().value) == "(")
                     {
-                        if (operatorStack.top().type == token_types::GROUPING_OPERATOR &&
-                            std::get<string_t>(operatorStack.top().value) == "(")
-                        {
-                            operatorStack.pop();
-                            foundMatchingOpening = true;
-                            break;
-                        }
-                        else
-                        {
-                            outputQueue.emplace_back(operatorStack.top());
-                            operatorStack.pop();
-                        }
+                        operatorStack.pop();
+                        foundMatchingOpening = true;
+                        break;
                     }
-                    if (!foundMatchingOpening)
-                        throw std::runtime_error("Mismatched parentheses");
-
-                    // If the token at the top of the stack is a function, pop it onto the output queue
-                    if (!operatorStack.empty() && operatorStack.top().type == token_types::FUNCTION)
+                    else
                     {
                         outputQueue.emplace_back(operatorStack.top());
                         operatorStack.pop();
-                        argCountStack.pop();
-                        functionContextStack.pop();
                     }
                 }
-                else if (tokenValue == "[")
-                {
-                const auto &opInfo1 = get_operator_info("[");
-                    process_operator_stack("[", opInfo1);
-                    operatorStack.push(tok);
-                }
-                else if (tokenValue == "]")
-                {
-                    // Pop operators until matching '[' is found
-                    bool foundMatchingOpening = false;
-                    while (!operatorStack.empty())
-                    {
-                        if (operatorStack.top().type == token_types::GROUPING_OPERATOR &&
-                            std::get<string_t>(operatorStack.top().value) == "[")
-                        {
-                            operatorStack.pop();
-                            foundMatchingOpening = true;
-                            break;
-                        }
-                        else
-                        {
-                            outputQueue.emplace_back(operatorStack.top());
-                            operatorStack.pop();
-                        }
-                    }
-                    if (!foundMatchingOpening)
-                    {
-                        throw std::runtime_error("Mismatched brackets");
-                    }
+                if (!foundMatchingOpening)
+                    throw std::runtime_error("Mismatched parentheses");
 
-                    // Add the '[]' postfix operator to the output queue
-                    token_t indexOperator(token_types::OPERATOR, data_type::NULL_TYPE, string_t("[]"));
-                const auto &opInfo1 = get_operator_info("[]");
-                    process_operator_stack("[]", opInfo1);
-                    operatorStack.push(indexOperator);
+                // If the token at the top of the stack is a function, pop it onto the output queue
+                if (!operatorStack.empty() && operatorStack.top().type == token_types::FUNCTION)
+                {
+                    outputQueue.emplace_back(operatorStack.top());
+                    operatorStack.pop();
+                    argCountStack.pop();
+                    functionContextStack.pop();
                 }
-                break;
             }
-
-            case token_types::ARGUMENT_SEPARATOR:
+            else if (tokenValue == "[")
             {
-                // Ensure argument separator is within function or index context
-                if ((!functionContextStack.empty() && functionContextStack.top()) ||
-                    (!operatorStack.empty() && operatorStack.top().type == token_types::GROUPING_OPERATOR &&
-                     std::get<string_t>(operatorStack.top().value) == "["))
+                const auto &opInfo1 = get_operator_info("[");
+                process_operator_stack("[", opInfo1);
+                operatorStack.push(tok);
+            }
+            else if (tokenValue == "]")
+            {
+                // Pop operators until matching '[' is found
+                bool foundMatchingOpening = false;
+                while (!operatorStack.empty())
                 {
-                    // Pop operators until a left parenthesis or bracket is found
-                    while (!operatorStack.empty())
+                    if (operatorStack.top().type == token_types::GROUPING_OPERATOR &&
+                        std::get<string_t>(operatorStack.top().value) == "[")
                     {
-                        const auto &topTok = operatorStack.top();
-                        if (topTok.type == token_types::GROUPING_OPERATOR &&
-                            (std::get<string_t>(topTok.value) == "(" || std::get<string_t>(topTok.value) == "["))
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            outputQueue.emplace_back(topTok);
-                            operatorStack.pop();
-                        }
+                        operatorStack.pop();
+                        foundMatchingOpening = true;
+                        break;
                     }
-
-                    // Increment argument count if in function context
-                    if (!argCountStack.empty() && functionContextStack.top())
+                    else
                     {
-                        ++argCountStack.top();
+                        outputQueue.emplace_back(operatorStack.top());
+                        operatorStack.pop();
                     }
                 }
-                else
-                    throw std::runtime_error("Argument separator ',' used outside of function or index arguments.");
-                break;
-            }
+                if (!foundMatchingOpening)
+                {
+                    throw std::runtime_error("Mismatched brackets");
+                }
 
-            default:
-                throw std::runtime_error("Unknown token type");
+                // Add the '[]' postfix operator to the output queue
+                token_t indexOperator(token_types::OPERATOR, data_type::NULL_TYPE, string_t("[]"));
+                const auto &opInfo1 = get_operator_info("[]");
+                process_operator_stack("[]", opInfo1);
+                operatorStack.push(indexOperator);
+            }
+            break;
+        }
+
+        case token_types::ARGUMENT_SEPARATOR:
+        {
+            // Ensure argument separator is within function or index context
+            if ((!functionContextStack.empty() && functionContextStack.top()) ||
+                (!operatorStack.empty() && operatorStack.top().type == token_types::GROUPING_OPERATOR &&
+                 std::get<string_t>(operatorStack.top().value) == "["))
+            {
+                // Pop operators until a left parenthesis or bracket is found
+                while (!operatorStack.empty())
+                {
+                    const auto &topTok = operatorStack.top();
+                    if (topTok.type == token_types::GROUPING_OPERATOR &&
+                        (std::get<string_t>(topTok.value) == "(" || std::get<string_t>(topTok.value) == "["))
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        outputQueue.emplace_back(topTok);
+                        operatorStack.pop();
+                    }
+                }
+
+                // Increment argument count if in function context
+                if (!argCountStack.empty() && functionContextStack.top())
+                {
+                    ++argCountStack.top();
+                }
+            }
+            else
+                throw std::runtime_error("Argument separator ',' used outside of function or index arguments.");
+            break;
+        }
+
+        default:
+            throw std::runtime_error("Unknown token type");
         }
     }
 
