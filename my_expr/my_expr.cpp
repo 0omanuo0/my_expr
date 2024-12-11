@@ -206,7 +206,7 @@ token_stream_t expr::tokenize() const
         }
 
         // Literals, variables, functions, and strings
-        if (std::isdigit(currentChar) || currentChar == '.' || std::isalpha(currentChar) || currentChar == '_' || currentChar == '"')
+        if (std::isdigit(currentChar) || currentChar == '.' || std::isalpha(currentChar) || currentChar == '_' || currentChar == '"' || currentChar == '\'')
         {
             // Handle string literals
             if (currentChar == '"')
@@ -219,6 +219,23 @@ token_stream_t expr::tokenize() const
                 }
 
                 if (pos < length && expression_[pos] == '"')
+                    ++pos;
+                else
+                    throw std::runtime_error("Unterminated string literal");
+                tokens.emplace_back(token_types::LITERAL, data_type::STRING, token_data_t(literal));
+                continue;
+            }
+
+            if (currentChar == '\'')
+            {
+                std::string literal;
+                ++pos;
+                while (pos < length && expression_[pos] != '\'')
+                {
+                    literal += expression_[pos++];
+                }
+
+                if (pos < length && expression_[pos] == '\'')
                     ++pos;
                 else
                     throw std::runtime_error("Unterminated string literal");
@@ -247,7 +264,7 @@ token_stream_t expr::tokenize() const
                 }
 
                 // Ensure number is valid
-                num_t number = stringToNumber(numberStr);
+                num_t number = stringToNumber2(numberStr);
                 if (!std::isnan(number))
                 {
                     number = isNegative ? -number : number;
@@ -359,7 +376,8 @@ token_stream_t expr::shunting_yard(const token_stream_t &tokens) const
     std::stack<bool> functionContextStack;
 
     // Helper function to get operator info
-    auto get_operator_info = [this](const string_t& op) -> const operator_info_t& {
+    auto get_operator_info = [this](const string_t &op) -> const operator_info_t &
+    {
         auto it = operator_info_map_.find(op);
         if (it == operator_info_map_.end())
         {
@@ -369,11 +387,12 @@ token_stream_t expr::shunting_yard(const token_stream_t &tokens) const
     };
 
     // Helper function to process operator stack based on precedence and associativity
-    auto process_operator_stack = [&](const string_t& currentOp, const operator_info_t& currentOpInfo) {
+    auto process_operator_stack = [&](const string_t &currentOp, const operator_info_t &currentOpInfo)
+    {
         while (!operatorStack.empty() && operatorStack.top().type == token_types::OPERATOR)
         {
-            const string_t& opOnStack = std::get<string_t>(operatorStack.top().value);
-            const auto& opOnStackInfo = get_operator_info(opOnStack);
+            const string_t &opOnStack = std::get<string_t>(operatorStack.top().value);
+            const auto &opOnStackInfo = get_operator_info(opOnStack);
 
             if ((opOnStackInfo.precedence > currentOpInfo.precedence) ||
                 (opOnStackInfo.precedence == currentOpInfo.precedence && !currentOpInfo.right_associative))
@@ -406,7 +425,7 @@ token_stream_t expr::shunting_yard(const token_stream_t &tokens) const
             case token_types::OPERATOR:
             {
                 const string_t &op1 = std::get<string_t>(tok.value);
-                const auto& opInfo1 = get_operator_info(op1);
+            const auto &opInfo1 = get_operator_info(op1);
                 process_operator_stack(op1, opInfo1);
                 operatorStack.push(tok);
                 break;
@@ -453,7 +472,7 @@ token_stream_t expr::shunting_yard(const token_stream_t &tokens) const
                 }
                 else if (tokenValue == "[")
                 {
-                    const auto& opInfo1 = get_operator_info("[");
+                const auto &opInfo1 = get_operator_info("[");
                     process_operator_stack("[", opInfo1);
                     operatorStack.push(tok);
                 }
@@ -483,7 +502,7 @@ token_stream_t expr::shunting_yard(const token_stream_t &tokens) const
 
                     // Add the '[]' postfix operator to the output queue
                     token_t indexOperator(token_types::OPERATOR, data_type::NULL_TYPE, string_t("[]"));
-                    const auto& opInfo1 = get_operator_info("[]");
+                const auto &opInfo1 = get_operator_info("[]");
                     process_operator_stack("[]", opInfo1);
                     operatorStack.push(indexOperator);
                 }
@@ -543,7 +562,6 @@ token_stream_t expr::shunting_yard(const token_stream_t &tokens) const
 
     return outputQueue;
 }
-
 
 #pragma endregion
 
@@ -769,5 +787,10 @@ token_data_t expr::evaluate_postfix(const token_stream_t &postfixTokens) const
         }
     }
 
+    // if the top is a variable, resolve it
+    if (evaluationStack.size() == 1 && evaluationStack.top().type == token_types::VARIABLE)
+    {
+        return resolve_operand(evaluationStack.top());
+    }
     return evaluationStack.top().value;
 }
