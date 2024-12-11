@@ -44,7 +44,7 @@ namespace m_parser_builtins
 			// try to convert string to number
 			else if (args[i].index() == 1)
 			{
-				result.push_back(stringToNumber(std::get<string_t>(args[i])));
+				result.push_back(stringToNumber2(std::get<string_t>(args[i])));
 				continue;
 			}
 			else if (args[i].index() == 2)
@@ -197,7 +197,7 @@ namespace f_parser_builtins
 		}
 		else if (args[0].index() == 1)
 		{
-			num_t r = static_cast<num_t>(stringToNumber(std::get<string_t>(args[0])));
+			num_t r = static_cast<num_t>(stringToNumber2(std::get<string_t>(args[0])));
 			return r;
 		}
 		else if (args[0].index() == 2)
@@ -249,27 +249,36 @@ namespace f_parser_builtins
 		return json_t();
 	}
 	
-	inline token_data_t len_f(const token_data_t *args){
-		if(args[0].index() == 1){
+	inline token_data_t len_f(const token_data_t *args)
+	{
+		if (args[0].index() == 1)
+		{
 			return static_cast<num_t>(std::get<string_t>(args[0]).size());
 		}
-		else if(args[0].index() == 2){
+		else if (args[0].index() == 2)
+		{
 			return static_cast<num_t>(std::get<json_t>(args[0]).size());
 		}
 		return (num_t)0;
 	}
 
-	inline token_data_t sum_f(const token_data_t *args){
-		if(args[0].index() == 2){
+	inline token_data_t sum_f(const token_data_t *args)
+	{
+		if (args[0].index() == 2)
+		{
 			auto j = std::get<json_t>(args[0]);
-			if(j.is_array()){
+			if (j.is_array())
+			{
 				num_t sum = 0;
-				for(auto &v : j){
-					if(v.is_number()){
+				for (auto &v : j)
+				{
+					if (v.is_number())
+					{
 						sum += v.get<num_t>();
 					}
-					else if(v.is_string()){
-						sum += stringToNumber(v.get<string_t>());
+					else if (v.is_string())
+					{
+						sum += stringToNumber2(v.get<string_t>());
 					}
 				}
 				return sum;
@@ -278,10 +287,13 @@ namespace f_parser_builtins
 		return (num_t)0;
 	}
 	
-	inline token_data_t capitalize_f(const token_data_t *args){
-		if(args[0].index() == 1){
+	inline token_data_t capitalize_f(const token_data_t *args)
+	{
+		if (args[0].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
-			if(s.size() > 0){
+			if (s.size() > 0)
+			{
 				s[0] = std::toupper(s[0]);
 			}
 			return s;
@@ -289,8 +301,10 @@ namespace f_parser_builtins
 		return string_t("");
 	}
 
-	inline token_data_t lower_f(const token_data_t *args){
-		if(args[0].index() == 1){
+	inline token_data_t lower_f(const token_data_t *args)
+	{
+		if (args[0].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
 			std::transform(s.begin(), s.end(), s.begin(), ::tolower);
 			return s;
@@ -298,8 +312,10 @@ namespace f_parser_builtins
 		return string_t("");
 	}
 
-	inline token_data_t upper_f(const token_data_t *args){
-		if(args[0].index() == 1){
+	inline token_data_t upper_f(const token_data_t *args)
+	{
+		if (args[0].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
 			std::transform(s.begin(), s.end(), s.begin(), ::toupper);
 			return s;
@@ -307,8 +323,10 @@ namespace f_parser_builtins
 		return string_t("");
 	}
 
-	inline token_data_t split_f(const token_data_t *args){
-		if(args[0].index() == 1 && args[1].index() == 1){
+	inline token_data_t split_f(const token_data_t *args)
+	{
+		if (args[0].index() == 1 && args[1].index() == 1)
+		{
 			auto s = std::get<string_t>(args[0]);
 			auto delim = std::get<string_t>(args[1]);
 			std::vector<string_t> result;
@@ -796,34 +814,39 @@ namespace operators_builtins
 		}
 	}
 
+	inline bool check_operands(const token_data_t &a, const token_data_t &b){
+		return a.index() == b.index();
+	}
+
 	inline token_data_t eq_f(const token_data_t &a, const token_data_t &b)
 	{
-		return a == b;
+		
+		return check_operands ? token_data_t((num_t)(a == b)): std::numeric_limits<num_t>::quiet_NaN();
 	}
 
 	inline token_data_t neq_f(const token_data_t &a, const token_data_t &b)
 	{
-		return a != b;
+		return check_operands ? token_data_t((num_t)(a != b)): std::numeric_limits<num_t>::quiet_NaN();
 	}
 
 	inline token_data_t gt_f(const token_data_t &a, const token_data_t &b)
 	{
-		return a > b;
+		return check_operands ? token_data_t((num_t)(a > b)): std::numeric_limits<num_t>::quiet_NaN();
 	}
 
 	inline token_data_t gte_f(const token_data_t &a, const token_data_t &b)
 	{
-		return a >= b;
+		return check_operands ? token_data_t((num_t)(a >= b)): std::numeric_limits<num_t>::quiet_NaN();
 	}
 
 	inline token_data_t lt_f(const token_data_t &a, const token_data_t &b)
 	{
-		return a < b;
+		return check_operands ? token_data_t((num_t)(a < b)): std::numeric_limits<num_t>::quiet_NaN();
 	}
 
 	inline token_data_t lte_f(const token_data_t &a, const token_data_t &b)
 	{
-		return a <= b;
+		return check_operands ? token_data_t((num_t)(a <= b)): std::numeric_limits<num_t>::quiet_NaN();
 	}
 
 	inline token_data_t and_f(const token_data_t &a, const token_data_t &b)
@@ -965,16 +988,78 @@ struct parser_dtype
 		return value.index();
 	}
 
-	string_t toString() const
+	bool isNumber() const noexcept
+	{
+		if (value.index() == 0)
+		{
+			return true;
+		}
+		else if (value.index() == 2)
+		{
+			return json_is_number(std::get<json_t>(value));
+		}
+	}
+
+	bool isString() const noexcept
+	{
+		if (value.index() == 1)
+		{
+			return true;
+		}
+		else if (value.index() == 2)
+		{
+			return std::get<json_t>(value).is_string();
+		}
+	}
+
+	bool isJson() const noexcept
+	{
+		return value.index() == 2;
+	}
+
+	bool is_array() const noexcept
+	{
+		if (value.index() == 2)
+		{
+			return std::get<json_t>(value).is_array();
+		}
+		return false;
+	}
+
+	bool is_object() const noexcept
+	{
+		if (value.index() == 2)
+		{
+			return std::get<json_t>(value).is_object();
+		}
+		return false;
+	}
+
+	string_t toString(bool no_quotes = false) const
 	{
 		switch (value.index())
 		{
 		case 0:
-			return std::to_string(std::get<num_t>(value));
+		{
+			// if is int return whitout decimals comparing with the floor value
+			auto a = std::get<num_t>(value);
+			return (std::floor(a) == a) ? std::to_string(static_cast<int64_t>(a)) : std::to_string(a);
+		}
 		case 1:
-			return std::get<string_t>(value);
+		{
+			auto a = std::get<string_t>(value);
+			if (no_quotes)
+				return (char)a[0] == '"' ? a.substr(1, a.size() - 2) : a;
+			return a;
+		}
 		case 2:
-			return std::get<json_t>(value).dump();
+		{
+			auto a = std::get<json_t>(value).dump();
+			if (no_quotes)
+				return (char)a[0] == '"' ? a.substr(1, a.size() - 2) : a;
+
+			return a;
+		}
 		default:
 			return "";
 		}
@@ -987,7 +1072,7 @@ struct parser_dtype
 		case 0:
 			return std::get<num_t>(value);
 		case 1:
-			return stringToNumber(std::get<string_t>(value));
+			return stringToNumber2(std::get<string_t>(value));
 		default:
 			return std::numeric_limits<num_t>::quiet_NaN();
 		}
@@ -1016,8 +1101,10 @@ class expr
 	// built-in functions, these functions are the ones that can be used in the expression
 
 	const std::unordered_map<string_t, m_function_info> m_functions_builtin = {
-		{"pi", {[](const num_t *args) { return 3.14159265358979323846; }, 0}},
-		{"e", {[](const num_t *args) { return 2.71828182845904523536; }, 0}},
+		{"pi", {[](const num_t *args)
+				{ return 3.14159265358979323846; }, 0}},
+		{"e", {[](const num_t *args)
+			   { return 2.71828182845904523536; }, 0}},
 		{"cos", {m_parser_builtins::cos_f, 1}},
 		{"sin", {m_parser_builtins::sin_f, 1}},
 		{"pow", {m_parser_builtins::pow_f, 2}},
@@ -1108,6 +1195,11 @@ public:
 	token_stream_t get_tokens() const { return output_compiled_; }
 
 	void compile();
+	void compile(const string_t &exp)
+	{
+		expression_ = exp;
+		compile();
+	}
 	void set_unknown_function_resolver(function_resolver_t resolver, bool keep)
 	{
 		this->unknown_function_resolver_ = resolver;
@@ -1119,8 +1211,22 @@ public:
 		this->keep_unknown_vars_ = keep;
 	}
 
+	expr &operator=(const expr &other)
+	{
+		if (this == &other)
+			return *this;
+		expression_ = other.expression_;
+		variables_ = other.variables_;
+		functions_ = other.functions_;
+		return *this;
+	}
+
 	void set_variables(const std::unordered_map<string_t, token_data_t> &variables)
 	{
+		if (variables.empty())
+		{
+			return;
+		}
 		for (const auto &f : variables)
 		{
 			auto v_name = f.first;
