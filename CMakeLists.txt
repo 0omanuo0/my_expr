@@ -12,5 +12,8 @@ target_include_directories(my_expr_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/my_exp
 set(DEBUG_CXXFLAGS "-Wall -g -Og -O0 -DDEBUG -rdynamic -fdiagnostics-color=always")
 set(CMAKE_BUILD_TYPE Debug)
 
+set(RELEASE_CXXFLAGS " -O3 -DNDEBUG -rdynamic -fdiagnostics-color=always")
+set(CMAKE_BUILD_TYPE Release)
+
 # Opcional: Añadir compiladores específicos o flags, si se necesitan
 # target_compile_options(my_expr_lib PRIVATE -Wall -Wextra)
