@@ -1082,6 +1082,7 @@ struct parser_dtype
 		{
 			return std::get<json_t>(value).is_string();
 		}
+		return false;
 	}
 
 	bool isJson() const noexcept
