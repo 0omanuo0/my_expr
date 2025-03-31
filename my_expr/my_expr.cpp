@@ -2,11 +2,6 @@
 
 #pragma region functions
 
-const std::unordered_set<string_t> expr::operators_ = {
-    "==", "!=", "<=", ">=", "&&", "||", "!", "<", ">", "+", "-", "*", "/", "%", "^", ".", "[]"};
-
-const std::unordered_set<string_t> expr::literals_ = {"true", "false", "null"};
-
 // --------------------------------------------------
 
 void expr::compile()
@@ -83,26 +78,6 @@ void expr::print_tokens(const token_stream_t &tokens) const
     }
     std::cout << std::endl;
 };
-
-const std::unordered_map<string_t, operator_info_t> expr::operator_info_map_ = {
-    {"+", {2, false, 2}},
-    {"-", {2, false, 2}},
-    {"*", {3, false, 2}},
-    {"/", {3, false, 2}},
-    {"%", {3, false, 2}},
-    {"^", {4, true, 2}}, // La exponenciación es asociativa por la derecha
-    {"==", {1, false, 2}},
-    {"!=", {1, false, 2}},
-    {"<", {1, false, 2}},
-    {"<=", {1, false, 2}},
-    {">", {1, false, 2}},
-    {">=", {1, false, 2}},
-    {"&&", {0, false, 2}},
-    {"||", {0, false, 2}},
-    {"!", {5, true, 1}}, // Operadores unarios tienen mayor precedencia
-    {".", {7, false, 2}},
-    {"[", {7, false, 2}},
-    {"[]", {7, false, 2}}};
 
 #pragma endregion
 
@@ -618,8 +593,8 @@ token_data_t expr::evaluate_postfix(const token_stream_t &postfixTokens) const
         case token_types::FUNCTION:
         {
             auto func_name = std::get<string_t>(tok.value);
-            auto func_m = m_functions_builtin.find(func_name);
-            if (func_m != m_functions_builtin.end())
+            auto func_m = m_parser_builtins::f.find(func_name);
+            if (func_m != m_parser_builtins::f.end())
             {
                 std::vector<token_data_t> args;
                 for (int i = 0; i < func_m->second.num_args; i++)
@@ -643,8 +618,8 @@ token_data_t expr::evaluate_postfix(const token_stream_t &postfixTokens) const
             }
             else
             {
-                auto func_f = f_functions_builtin.find(func_name);
-                if (func_f == f_functions_builtin.end())
+                auto func_f = f_parser_builtins::f.find(func_name);
+                if (func_f == f_parser_builtins::f.end())
                 {
                     // check in functions_
                     func_f = functions_.find(func_name);
